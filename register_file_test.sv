@@ -54,8 +54,8 @@ module register_file_test();
       read_address2 = 1;
 
       #10;
-      assert(read_data1 === 5678);
-      assert(read_data2 === 1234);
+      assert(read_data1 === 5678) else $fatal;
+      assert(read_data2 === 1234) else $fatal;
 
       $finish;
    end
