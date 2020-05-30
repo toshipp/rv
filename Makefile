@@ -1,7 +1,12 @@
-test: a.out
-	./a.out
+TESTS := $(wildcard *_test.sv)
+TEST_TARGETS := $(patsubst %.sv,%,$(TESTS))
 
-a.out: register_file_test.sv register_file.sv
-	iverilog -g2005-sv $^
+test: $(TEST_TARGETS)
+
+%: %.vvp
+	vvp $<
+
+%.vvp: %.sv
+	iverilog -g2005-sv -o $@ $< $(subst _test,,$<)
 
 .PHONY: test
