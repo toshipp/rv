@@ -18,4 +18,7 @@ immediate_decoder_test.vvp: immediate_decoder_test.sv immediate_decoder.v
 load_memory_decoder_test.vvp: load_memory_decoder_test.sv load_memory_decoder.v
 	iverilog -g2005-sv -o $@ $^
 
+store_memory_encoder_test.vvp: store_memory_encoder_test.sv store_memory_encoder.v
+	iverilog -g2005-sv -o $@ $^
+
 .PHONY: test
