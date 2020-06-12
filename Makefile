@@ -15,4 +15,7 @@ test: $(TEST_TARGETS)
 immediate_decoder_test.vvp: immediate_decoder_test.sv immediate_decoder.v
 	iverilog -g2005-sv -o $@ $^
 
+load_memory_decoder_test.vvp: load_memory_decoder_test.sv load_memory_decoder.v
+	iverilog -g2005-sv -o $@ $^
+
 .PHONY: test
