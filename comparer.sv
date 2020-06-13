@@ -1,3 +1,5 @@
+`include "comparer.h"
+
 module comparer
   #(parameter N = 32)
    (input logic [2:0] type_,
@@ -6,13 +8,13 @@ module comparer
     output logic        out);
    always_comb
      case(type_)
-       3'b000: out = in1 == in2;
-       3'b001: out = in1 != in2;
-       3'b010: out = $signed(in1) < $signed(in2);
-       3'b011: out = in1 < in2;
-       3'b100: out = $signed(in1) < $signed(in2);
-       3'b101: out = $signed(in2) >= $signed(in2);
-       3'b110: out = in1 < in2;
-       3'b111: out = in1 >= in2;
+       `CMP_EQ: out = in1 == in2;
+       `CMP_NE: out = in1 != in2;
+       `CMP_LT2: out = $signed(in1) < $signed(in2);
+       `CMP_LTU2: out = in1 < in2;
+       `CMP_LT: out = $signed(in1) < $signed(in2);
+       `CMP_GE: out = $signed(in2) >= $signed(in2);
+       `CMP_LTU: out = in1 < in2;
+       `CMP_GEU: out = in1 >= in2;
      endcase
 endmodule

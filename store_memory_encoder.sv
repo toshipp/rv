@@ -1,6 +1,4 @@
-`define B 2'b00
-`define H 2'b01
-`define W 2'b10
+`include "store_memory_encoder.h"
 
 module store_memory_encoder(input logic [1:0] type_,
                             input logic [1:0]   offset,
@@ -9,11 +7,11 @@ module store_memory_encoder(input logic [1:0] type_,
                             output logic [31:0] mask);
    always_comb
      case(type_)
-       `B:
+       `STORE_B:
          case(offset)
            0:
              begin
-                out = {24'bx, in[8:0]};
+                out = {24'bx, in[7:0]};
                 mask = 32'h000000ff;
              end
            1:
@@ -32,7 +30,7 @@ module store_memory_encoder(input logic [1:0] type_,
                 mask = 32'hff000000;
              end
          endcase
-       `H:
+       `STORE_H:
          case(offset)
            0:
              begin
@@ -51,7 +49,7 @@ module store_memory_encoder(input logic [1:0] type_,
                 mask = 'bx;
              end
          endcase
-       `W:
+       `STORE_W:
          case(offset)
            0:
              begin

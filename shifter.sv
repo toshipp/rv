@@ -1,3 +1,5 @@
+`include "shifter.h"
+
 module shifter
   #(parameter N = 32)
    (input logic [1:0] type_,
@@ -6,9 +8,9 @@ module shifter
     output logic [N-1:0] out);
    always_comb
      case(type_)
-       2'b00: out = in << shift;
-       2'b01: out = in >> shift;
-       2'b10: out = $signed(in) >>> shift;
+       `SHIFT_LEFT: out = in << shift;
+       `SHIFT_RIGHT: out = in >> shift;
+       `SHIFT_ARITH: out = $signed(in) >>> shift;
        default: out = 'bx;
      endcase
 endmodule
