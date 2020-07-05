@@ -21,4 +21,9 @@ load_memory_decoder_test.vvp: load_memory_decoder_test.sv load_memory_decoder.v
 store_memory_encoder_test.vvp: store_memory_encoder_test.sv store_memory_encoder.v
 	iverilog -g2005-sv -o $@ $^
 
+sim: sim.cc $(wildcard *.sv)
+	verilator --cc -sv --exe --Mdir generated -o sim sim.sv sim.cc
+	make -C generated -f Vsim.mk
+	mv generated/sim sim
+
 .PHONY: test
