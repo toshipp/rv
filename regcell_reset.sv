@@ -1,4 +1,4 @@
-module regcell
+module regcell_reset
   #(parameter RESET_VALUE = 0)
    (input logic clk,
     input logic         reset,
