@@ -9,6 +9,14 @@ module register_file(input logic clk,
    logic [31:0]                          rf[31:0];
    logic [31:0]                          d1, d2;
 
+`ifdef VERILATOR
+   export "DPI-C" task read_register;
+
+   task read_register(input int address, output int data);
+      data = rf[address];
+   endtask
+`endif
+
    always_ff @(posedge clk)
      if(write_enable)
        rf[write_address] <= write_data;

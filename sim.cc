@@ -11,6 +11,8 @@
 
 #include "Vsim.h"
 
+static const std::uint32_t INST_ECALL = 0x73;
+
 static const std::uint32_t start_address = 0x80000000;
 
 using MemoryMap = std::map<std::uint32_t, std::uint32_t>;
@@ -31,7 +33,6 @@ extern "C" void memory_write(int addr, int data, int mask) {
     m = (m & ~mask) | (data & mask);
 }
 
-
 int simulate(int argc, char** argv) {
     Verilated::commandArgs(argc, argv);
     auto top = std::make_unique<Vsim>();
@@ -49,6 +50,20 @@ int simulate(int argc, char** argv) {
             std::cerr << "pc: " << std::hex << top->debug_pc << std::endl;
             std::cerr << "inst: " << std::hex << top->debug_instruction << std::endl;
             std::cerr << "state: " << std::dec << int(top->debug_state) << std::endl;
+        }
+
+        if(top->debug_instruction == INST_ECALL){
+            svSetScope(svGetScopeFromName("TOP.sim.core.data_path.register_file"));
+            int a0, a7;
+            read_register(10, &a0);
+            read_register(17, &a7);
+            if(a7 == 93 && a0 == 0) {
+                std::cerr << "pass" << std::endl;
+                return 0;
+            } else {
+                std::cerr << "fail" << std::endl;
+                return 1;
+            }
         }
 
         if(top->trap) {
