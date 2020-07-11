@@ -26,4 +26,7 @@ sim: sim.cc $(wildcard *.sv)
 	make -C generated -f Vsim.mk
 	mv generated/sim sim
 
-.PHONY: test
+clean:
+	rm -rf *__gen.v *.vvp sim generated
+
+.PHONY: test clean
