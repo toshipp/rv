@@ -39,48 +39,51 @@ int simulate(int argc, char** argv) {
 
     unsigned int reset_clocks = 2;
 
-    top->reset = 0;
+    top->reset = 1;
     top->clk = 0;
 
     while (!Verilated::gotFinish()) {
+        if(top->clk > 0) {
+            if(reset_clocks > 0) {
+                --reset_clocks;
+            } else {
+                top->reset = 0;
+            }
+        }
+
         top->eval();
 
         if(top->clk > 0) {
             std::cerr << "#eval" << std::endl;
             std::cerr << "pc: " << std::hex << top->debug_pc << std::endl;
             std::cerr << "inst: " << std::hex << top->debug_instruction << std::endl;
-            std::cerr << "state: " << std::dec << int(top->debug_state) << std::endl;
-        }
-
-        if(top->debug_instruction == INST_ECALL){
-            svSetScope(svGetScopeFromName("TOP.sim.core.data_path.register_file"));
-            int a0, a7;
-            read_register(10, &a0);
-            read_register(17, &a7);
-            if(a7 == 93 && a0 == 0) {
-                std::cerr << "pass" << std::endl;
-                return 0;
-            } else {
-                std::cerr << "fail" << std::endl;
-                return 1;
-            }
+            std::cerr << "state: " << std::dec << static_cast<unsigned int>(top->debug_state) << std::endl;
+            std::cerr << "in1: " << std::hex << static_cast<unsigned int>(top->debug_in1) << std::endl;
+            std::cerr << "in2: " << std::hex << static_cast<unsigned int>(top->debug_in2) << std::endl;
+            std::cerr << "result: " << std::hex << static_cast<unsigned int>(top->debug_result) << std::endl;
         }
 
         if(top->trap) {
             std::cerr << "trap" << std::endl;
+
+            if(top->debug_instruction == INST_ECALL){
+                svSetScope(svGetScopeFromName("TOP.sim.core.data_path.register_file"));
+                int a0, a7;
+                read_register(10, &a0);
+                read_register(17, &a7);
+                if(a7 == 93 && a0 == 0) {
+                    std::cerr << "pass" << std::endl;
+                    return 0;
+                } else {
+                    std::cerr << "fail: " << std::dec << (a0 >> 1) << std::endl;
+                    return 1;
+                }
+            }
+
             return 1;
         }
 
         top->clk = !top->clk;
-
-        if(top->clk > 0) {
-            if(reset_clocks > 0) {
-                top->reset = true;
-                --reset_clocks;
-            } else {
-                top->reset = false;
-            }
-        }
     }
     top->final();
 

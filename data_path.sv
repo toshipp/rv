@@ -16,7 +16,6 @@ module data_path
     input logic         pc_write_enable,
     input logic         instruction_write_enable,
     input logic         register_file_write_enable,
-    input logic         source_write_enable,
 
     input logic         write_immediate_to_register_file,
     input logic         write_load_memory_to_register_file,
@@ -29,19 +28,27 @@ module data_path
     input logic         execute_alu,
     input logic         execute_compare,
     input logic         execute_shift,
+    input logic         execute_csr,
     input logic         use_immediate,
+    input logic         use_immediate_for_compare,
     input logic         use_pc_for_alu,
 
     input logic [2:0]   immediate_type,
     input logic [2:0]   alu_type,
-    input logic [2:0]   compare_type,
     input logic [1:0]   shift_type,
+    input logic [2:0]   compare_type,
     input logic [2:0]   load_memory_decoder_type,
     input logic [1:0]   store_memory_encoder_type,
+    input logic [1:0]   csr_access_type,
+
+    input logic [11:0]  csr_number,
 
     output logic [31:0] instruction,
 
-    output logic [31:0] debug_pc
+    output logic [31:0] debug_pc,
+    output logic [31:0] debug_in1,
+    output logic [31:0] debug_in2,
+    output logic [31:0] debug_result
     );
 
    logic [31:0]         pc_next;
@@ -52,10 +59,6 @@ module data_path
    logic [31:0]         register_file_read_data1;
    logic [31:0]         register_file_read_data2;
 
-   logic [31:0]         source1;
-
-   logic [31:0]         source2;
-
    logic [31:0]         immediate;
 
    logic [31:0]         alu_in1;
@@ -65,6 +68,7 @@ module data_path
    logic [31:0]         compare_in2;
    logic                compare_out;
    logic [31:0]         compare_out_extended;
+   logic                compare_result;
 
    logic [4:0]          shift_count;
    logic [31:0]         shift_out;
@@ -75,6 +79,9 @@ module data_path
    logic [31:0]         load_memory_decoder_out;
 
    logic [31:0]         load_memory_data;
+
+   logic [31:0]         csr_in;
+   logic [31:0]         csr_out;
 
    regcell_reset #(START_ADDRESS) reg_pc(clk,
                                          reset,
@@ -96,16 +103,6 @@ module data_path
                                register_file_read_data1,
                                register_file_read_data2);
 
-   regcell reg_source1(clk,
-                       register_file_read_data1,
-                       source_write_enable,
-                       source1);
-
-   regcell reg_source2(clk,
-                       register_file_read_data2,
-                       source_write_enable,
-                       source2);
-
    immediate_decoder immediate_decoder(immediate_type,
                                        instruction,
                                        immediate);
@@ -116,12 +113,17 @@ module data_path
            alu_out);
 
    comparer comparer(compare_type,
-                     source1,
+                     register_file_read_data1,
                      compare_in2,
                      compare_out);
 
+   regcell #(1) reg_compare_result(clk,
+                                   compare_out,
+                                   execute_result_write_enable,
+                                   compare_result);
+
    shifter shifter(shift_type,
-                   source1,
+                   register_file_read_data1,
                    shift_count,
                    shift_out);
 
@@ -142,33 +144,55 @@ module data_path
 
    store_memory_encoder store_memory_encoder(store_memory_encoder_type,
                                              execute_result[1:0],
-                                             source2,
+                                             register_file_read_data2,
                                              write_memory_data,
                                              write_memory_mask);
 
+   csr_register csr_register(clk,
+                             csr_number,
+                             csr_access_type,
+                             csr_in,
+                             csr_out);
+
    assign debug_pc = pc_current;
+   assign debug_result = execute_result_in;
+   assign debug_in1 = alu_in1;
+   assign debug_in2 = alu_in2;
+
    assign pc_inc = pc_current + 4;
    assign pc_next = (write_execute_result_to_pc ||
-                     (write_execute_result_to_pc_if_compare_met && compare_out)) ? execute_result : pc_inc;
+                     (write_execute_result_to_pc_if_compare_met && compare_result)) ? execute_result : pc_inc;
 
    assign register_file_write_data = write_pc_inc_to_register_file ? pc_inc :
                                      (write_immediate_to_register_file ? immediate :
                                       (write_load_memory_to_register_file ? load_memory_data :
                                        execute_result));
 
-   assign alu_in1 = use_pc_for_alu ? pc_current : source1;
-   assign alu_in2 = use_immediate ?  immediate : source2;
+   assign alu_in1 = use_pc_for_alu ? pc_current : register_file_read_data1;
+   assign alu_in2 = use_immediate ?  immediate : register_file_read_data2;
 
-   assign compare_in2 = use_immediate ? immediate : source2;
+   assign compare_in2 = use_immediate_for_compare ? immediate : register_file_read_data2;
    assign compare_out_extended = {31'b0, compare_out};
 
-   assign shift_count = use_immediate ? instruction[24:20] : source2[4:0];
+   assign shift_count = use_immediate ? instruction[24:20] : register_file_read_data2[4:0];
 
-   assign execute_result_in = execute_alu ? alu_out :
-                              (execute_compare ? compare_out_extended :
-                               (execute_shift ? shift_out : 'bx));
+   always_comb
+     case(1'b1)
+       execute_alu:
+         execute_result_in = alu_out;
+       execute_compare:
+         execute_result_in = compare_out_extended;
+       execute_shift:
+         execute_result_in = shift_out;
+       execute_csr:
+         execute_result_in = csr_out;
+       default:
+         execute_result_in = 'bx;
+     endcase
 
    assign read_memory_address = use_execute_result_for_read_memory ? execute_result : pc_current;
 
    assign write_memory_address = execute_result;
+
+   assign csr_in = use_immediate ? {27'b0, instruction[19:15]} : register_file_read_data1;
 endmodule

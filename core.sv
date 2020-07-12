@@ -13,6 +13,9 @@ module core
     output logic [31:0] debug_pc,
     output logic [31:0] debug_instruction,
     output logic [2:0]  debug_state,
+    output logic [31:0] debug_in1,
+    output logic [31:0] debug_in2,
+    output logic [31:0] debug_result,
     output logic        trap);
 
    logic [31:0]         instruction;
@@ -22,7 +25,6 @@ module core
    logic                pc_write_enable;
    logic                instruction_write_enable;
    logic                register_file_write_enable;
-   logic                source_write_enable;
 
    logic                write_immediate_to_register_file;
    logic                write_pc_inc_to_register_file;
@@ -35,7 +37,9 @@ module core
    logic                execute_alu;
    logic                execute_compare;
    logic                execute_shift;
+   logic                execute_csr;
    logic                use_immediate;
+   logic                use_immediate_for_compare;
    logic                use_pc_for_alu;
 
    logic [2:0]          immediate_type;
@@ -44,6 +48,9 @@ module core
    logic [2:0]          compare_type;
    logic [2:0]          load_memory_decoder_type;
    logic [1:0]          store_memory_encoder_type;
+   logic [1:0]          csr_access_type;
+
+   logic [11:0]         csr_number;
 
    controller controller(clk,
                          reset,
@@ -54,7 +61,6 @@ module core
                          pc_write_enable,
                          instruction_write_enable,
                          register_file_write_enable,
-                         source_write_enable,
                          memory_write_enable,
 
                          write_immediate_to_register_file,
@@ -68,7 +74,9 @@ module core
                          execute_alu,
                          execute_compare,
                          execute_shift,
+                         execute_csr,
                          use_immediate,
+                         use_immediate_for_compare,
                          use_pc_for_alu,
 
                          immediate_type,
@@ -77,6 +85,9 @@ module core
                          compare_type,
                          load_memory_decoder_type,
                          store_memory_encoder_type,
+                         csr_access_type,
+
+                         csr_number,
 
                          debug_state,
                          trap);
@@ -94,7 +105,6 @@ module core
                                         pc_write_enable,
                                         instruction_write_enable,
                                         register_file_write_enable,
-                                        source_write_enable,
 
                                         write_immediate_to_register_file,
                                         write_load_memory_to_register_file,
@@ -107,19 +117,27 @@ module core
                                         execute_alu,
                                         execute_compare,
                                         execute_shift,
+                                        execute_csr,
                                         use_immediate,
+                                        use_immediate_for_compare,
                                         use_pc_for_alu,
 
                                         immediate_type,
                                         alu_type,
-                                        compare_type,
                                         shift_type,
+                                        compare_type,
                                         load_memory_decoder_type,
                                         store_memory_encoder_type,
+                                        csr_access_type,
+
+                                        csr_number,
 
                                         instruction,
 
-                                        debug_pc);
+                                        debug_pc,
+                                        debug_in1,
+                                        debug_in2,
+                                        debug_result);
 
    assign debug_instruction = instruction;
 endmodule

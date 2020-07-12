@@ -4,6 +4,9 @@ module sim(input logic clk,
            output logic [31:0] debug_pc,
            output logic [31:0] debug_instruction,
            output logic [2:0]  debug_state,
+           output logic [31:0] debug_in1,
+           output logic [31:0] debug_in2,
+           output logic [31:0] debug_result,
            output logic        trap);
 
    logic [31:0]                read_memory_data;
@@ -24,6 +27,9 @@ module sim(input logic clk,
                              debug_pc,
                              debug_instruction,
                              debug_state,
+                             debug_in1,
+                             debug_in2,
+                             debug_result,
                              trap);
 
    memory memory(clk,

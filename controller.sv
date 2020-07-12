@@ -1,6 +1,7 @@
 `include "immediate_decoder.h"
 `include "shifter.h"
 `include "alu.h"
+`include "csr_register.h"
 
 `define LUI 7'b0110111
 `define AUIPC 7'b0010111
@@ -14,54 +15,66 @@
 `define FENCE 7'b0001111
 `define SYSTEM 7'b1110011
 
+`define CSRRW 3'b001
+`define CSRRS 3'b010
+`define CSRRWI 3'b101
+
+`define MRET 32'b0011000_00010_00000_000_00000_1110011
+
 module controller(input logic        clk,
-                  input logic        reset,
+                  input logic         reset,
 
-                  input logic [31:0] instruction,
+                  input logic [31:0]  instruction,
 
-                  output logic       execute_result_write_enable,
-                  output logic       load_memory_data_write_enable,
-                  output logic       pc_write_enable,
-                  output logic       instruction_write_enable,
-                  output logic       register_file_write_enable,
-                  output logic       source_write_enable,
-                  output logic       memory_write_enable,
+                  output logic        execute_result_write_enable,
+                  output logic        load_memory_data_write_enable,
+                  output logic        pc_write_enable,
+                  output logic        instruction_write_enable,
+                  output logic        register_file_write_enable,
+                  output logic        memory_write_enable,
 
-                  output logic       write_immediate_to_register_file,
-                  output logic       write_pc_inc_to_register_file,
-                  output logic       write_execute_result_to_pc,
-                  output logic       write_execute_result_to_pc_if_compare_met,
-                  output logic       write_load_memory_to_register_file,
+                  output logic        write_immediate_to_register_file,
+                  output logic        write_pc_inc_to_register_file,
+                  output logic        write_execute_result_to_pc,
+                  output logic        write_execute_result_to_pc_if_compare_met,
+                  output logic        write_load_memory_to_register_file,
 
-                  output logic       use_execute_result_for_read_memory,
+                  output logic        use_execute_result_for_read_memory,
 
-                  output logic       execute_alu,
-                  output logic       execute_compare,
-                  output logic       execute_shift,
-                  output logic       use_immediate,
-                  output logic       use_pc_for_alu,
+                  output logic        execute_alu,
+                  output logic        execute_compare,
+                  output logic        execute_shift,
+                  output logic        execute_csr,
+                  output logic        use_immediate,
+                  output logic        use_immediate_for_compare,
+                  output logic        use_pc_for_alu,
 
-                  output logic [2:0] immediate_type,
-                  output logic [2:0] alu_type,
-                  output logic [1:0] shift_type,
-                  output logic [2:0] compare_type,
-                  output logic [2:0] load_memory_decoder_type,
-                  output logic [1:0] store_memory_encoder_type,
+                  output logic [2:0]  immediate_type,
+                  output logic [2:0]  alu_type,
+                  output logic [1:0]  shift_type,
+                  output logic [2:0]  compare_type,
+                  output logic [2:0]  load_memory_decoder_type,
+                  output logic [1:0]  store_memory_encoder_type,
+                  output logic [1:0]  csr_access_type,
 
-                  output logic [2:0] debug_state,
-                  output logic       trap);
+                  output logic [11:0] csr_number,
 
-   logic [6:0]                       opcode;
-   logic [2:0]                       funct3;
-   logic [6:0]                       funct7;
+                  output logic [2:0]  debug_state,
+                  output logic        trap);
 
-   typedef enum                      logic [2:0]  {
-                                                   fetch,
-                                                   decode,
-                                                   execute,
-                                                   memory,
-                                                   write_back
-                                                   } state;
+   logic [6:0]                        opcode;
+   logic [2:0]                        funct3;
+   logic [6:0]                        funct7;
+
+   typedef enum                       logic [2:0]  {
+                                                    fetch,
+                                                    fetch2,
+                                                    decode,
+                                                    execute,
+                                                    memory,
+                                                    memory2,
+                                                    write_back
+                                                    } state;
    state current_state;
    state next_state;
 
@@ -82,7 +95,6 @@ module controller(input logic        clk,
         pc_write_enable = 0;
         instruction_write_enable = 0;
         register_file_write_enable = 0;
-        source_write_enable = 0;
         memory_write_enable = 0;
 
         write_immediate_to_register_file = 0;
@@ -96,7 +108,9 @@ module controller(input logic        clk,
         execute_alu = 0;
         execute_compare = 0;
         execute_shift = 0;
+        execute_csr = 0;
         use_immediate = 0;
+        use_immediate_for_compare = 0;
         use_pc_for_alu = 0;
 
         immediate_type = 3'bx;
@@ -105,9 +119,17 @@ module controller(input logic        clk,
         shift_type = 2'bx;
         load_memory_decoder_type = 3'bx;
         store_memory_encoder_type = 2'bx;
+        csr_access_type = 2'b00;
+
+        csr_number = instruction[31:20];
 
         case(current_state)
           fetch:
+            begin
+               next_state = fetch2;
+            end
+
+          fetch2:
             begin
                next_state = decode;
                instruction_write_enable = 1;
@@ -116,7 +138,6 @@ module controller(input logic        clk,
           decode:
             begin
                next_state = execute;
-               source_write_enable = 1;
             end
 
           execute:
@@ -139,7 +160,10 @@ module controller(input logic        clk,
                       `JAR:
                         immediate_type = `IMM_J;
                       `BRANCH:
-                        immediate_type = `IMM_B;
+                        begin
+                           immediate_type = `IMM_B;
+                           compare_type = funct3;
+                        end
                       default:
                         immediate_type = 3'bx;
                     endcase
@@ -164,6 +188,7 @@ module controller(input logic        clk,
                     if(opcode == `CALCI)
                       begin
                          use_immediate = 1;
+                         use_immediate_for_compare = 1;
                          immediate_type = `IMM_I;
                       end
                     if(funct3[2:1] == 2'b01)
@@ -199,8 +224,32 @@ module controller(input logic        clk,
                  end
                else if(opcode == `SYSTEM)
                  begin
-                    // todo
-                    // act as nop
+                    if(instruction == `MRET)
+                      begin
+                         execute_csr = 1;
+                         csr_number = 12'h341;
+                      end
+                    else
+                      case(funct3)
+                        `CSRRW:
+                          begin
+                             execute_csr = 1;
+                             csr_access_type = `CSR_WRITE;
+                          end
+                        `CSRRS:
+                          begin
+                             execute_csr = 1;
+                             csr_access_type = `CSR_SET;
+                          end
+                        `CSRRWI:
+                          begin
+                             execute_csr = 1;
+                             csr_access_type = `CSR_CLEAR;
+                             use_immediate = 1;
+                          end
+                        default:
+                          trap = 1;
+                      endcase
                     next_state = write_back;
                  end
                else
@@ -213,14 +262,20 @@ module controller(input logic        clk,
                if(opcode == `LOAD)
                  begin
                     use_execute_result_for_read_memory = 1;
-                    load_memory_decoder_type = funct3;
-                    load_memory_data_write_enable = 1;
+                    next_state = memory2;
                  end
                else if(opcode == `STORE)
                  begin
                     memory_write_enable = 1;
                     store_memory_encoder_type = funct3[1:0];
                  end
+            end
+
+          memory2:
+            begin
+               next_state = write_back;
+               load_memory_decoder_type = funct3;
+               load_memory_data_write_enable = 1;
             end
 
           write_back:
@@ -255,6 +310,14 @@ module controller(input logic        clk,
                else if(opcode == `LOAD)
                  begin
                     write_load_memory_to_register_file = 1;
+                 end
+               else if(opcode == `SYSTEM)
+                 begin
+                    if(instruction == `MRET)
+                      write_execute_result_to_pc = 1;
+                    // csr
+                    if(funct3 != 3'b000 && funct3 != 3'b100)
+                      register_file_write_enable = 1;
                  end
             end
 
