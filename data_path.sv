@@ -163,10 +163,17 @@ module data_path
    assign pc_next = (write_execute_result_to_pc ||
                      (write_execute_result_to_pc_if_compare_met && compare_result)) ? execute_result : pc_inc;
 
-   assign register_file_write_data = write_pc_inc_to_register_file ? pc_inc :
-                                     (write_immediate_to_register_file ? immediate :
-                                      (write_load_memory_to_register_file ? load_memory_data :
-                                       execute_result));
+   always_comb
+     case(1'b1)
+       write_pc_inc_to_register_file:
+         register_file_write_data = pc_inc;
+       write_immediate_to_register_file:
+         register_file_write_data = immediate;
+       write_load_memory_to_register_file:
+         register_file_write_data = load_memory_data;
+       default:
+         register_file_write_data = execute_result;
+     endcase
 
    assign alu_in1 = use_pc_for_alu ? pc_current : register_file_read_data1;
    assign alu_in2 = use_immediate ?  immediate : register_file_read_data2;
