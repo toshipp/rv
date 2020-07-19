@@ -26,12 +26,16 @@ module controller(input logic        clk,
 
                   input logic [31:0]  instruction,
 
+                  input logic         memory_ready,
+                  input logic         memory_valid,
+
                   output logic        execute_result_write_enable,
                   output logic        load_memory_data_write_enable,
                   output logic        pc_write_enable,
                   output logic        instruction_write_enable,
                   output logic        register_file_write_enable,
-                  output logic        memory_write_enable,
+                  output logic        memory_command,
+                  output logic        memory_enable,
 
                   output logic        write_immediate_to_register_file,
                   output logic        write_pc_inc_to_register_file,
@@ -68,11 +72,9 @@ module controller(input logic        clk,
 
    typedef enum                       logic [2:0]  {
                                                     fetch,
-                                                    fetch2,
                                                     decode,
                                                     execute,
                                                     memory,
-                                                    memory2,
                                                     write_back
                                                     } state;
    state current_state;
@@ -95,7 +97,8 @@ module controller(input logic        clk,
         pc_write_enable = 0;
         instruction_write_enable = 0;
         register_file_write_enable = 0;
-        memory_write_enable = 0;
+        memory_command = 1'bx;
+        memory_enable = 0;
 
         write_immediate_to_register_file = 0;
         write_pc_inc_to_register_file = 0;
@@ -126,13 +129,17 @@ module controller(input logic        clk,
         case(current_state)
           fetch:
             begin
-               next_state = fetch2;
-            end
-
-          fetch2:
-            begin
-               next_state = decode;
-               instruction_write_enable = 1;
+               next_state = fetch;
+               if(memory_ready)
+                 begin
+                    memory_enable = 1;
+                    memory_command = 0;
+                 end
+               if(memory_valid)
+                 begin
+                    next_state = decode;
+                    instruction_write_enable = 1;
+                 end
             end
 
           decode:
@@ -258,24 +265,28 @@ module controller(input logic        clk,
 
           memory:
             begin
-               next_state = write_back;
+               next_state = memory;
+               if(memory_ready)
+                 memory_enable = 1;
                if(opcode == `LOAD)
                  begin
                     use_execute_result_for_read_memory = 1;
-                    next_state = memory2;
+                    memory_command = 0;
                  end
                else if(opcode == `STORE)
                  begin
-                    memory_write_enable = 1;
+                    memory_command = 1;
                     store_memory_encoder_type = funct3[1:0];
                  end
-            end
-
-          memory2:
-            begin
-               next_state = write_back;
-               load_memory_decoder_type = funct3;
-               load_memory_data_write_enable = 1;
+               if(memory_valid)
+                 begin
+                    next_state = write_back;
+                    if(opcode == `LOAD)
+                      begin
+                         load_memory_decoder_type = funct3;
+                         load_memory_data_write_enable = 1;
+                      end
+                 end
             end
 
           write_back:

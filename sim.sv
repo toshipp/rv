@@ -9,21 +9,27 @@ module sim(input logic clk,
            output logic [31:0] debug_result,
            output logic        trap);
 
+   logic                       memory_ready;
+   logic                       memory_valid;
    logic [31:0]                read_memory_data;
    logic [31:0]                read_memory_address;
    logic [31:0]                write_memory_data;
    logic [31:0]                write_memory_address;
    logic [31:0]                write_memory_mask;
-   logic                       memory_write_enable;
+   logic                       memory_enable;
+   logic                       memory_command;
 
    core #(32'h80000000) core(clk,
                              reset,
+                             memory_ready,
+                             memory_valid,
                              read_memory_data,
                              read_memory_address,
                              write_memory_data,
                              write_memory_address,
                              write_memory_mask,
-                             memory_write_enable,
+                             memory_command,
+                             memory_enable,
                              debug_pc,
                              debug_instruction,
                              debug_state,
@@ -33,21 +39,27 @@ module sim(input logic clk,
                              trap);
 
    memory memory(clk,
+                 memory_ready,
+                 memory_valid,
                  read_memory_data,
                  read_memory_address,
                  write_memory_data,
                  write_memory_address,
                  write_memory_mask,
-                 memory_write_enable);
+                 memory_command,
+                 memory_enable);
 endmodule
 
 module memory(input logic clk,
+              output logic        memory_ready,
+              output logic        memory_valid,
               output logic [31:0] read_memory_data,
               input logic [31:0]  read_memory_address,
               input logic [31:0]  write_memory_data,
               input logic [31:0]  write_memory_address,
               input logic [31:0]  write_memory_mask,
-              input logic         memory_write_enable);
+              input logic         memory_command,
+              input logic         memory_enable);
 
    logic [31:0]                   ra;
    logic [31:0]                   wa;
@@ -56,11 +68,20 @@ module memory(input logic clk,
    import "DPI-C" function int memory_read(input int addr);
 
    always_ff @(posedge clk)
-     if(memory_write_enable)
-       memory_write(wa, write_memory_data, write_memory_mask);
+     if(memory_enable)
+       begin
+          if(memory_command)
+            memory_write(wa, write_memory_data, write_memory_mask);
+          else
+            read_memory_data <= memory_read(ra);
+
+          memory_valid <= 1;
+       end
      else
-       read_memory_data <= memory_read(ra);
+       memory_valid <= 0;
 
    assign ra = {read_memory_address[31:2], 2'b0};
    assign wa = {write_memory_address[31:2], 2'b0};
+
+   assign memory_ready = 1;
 endmodule

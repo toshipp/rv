@@ -3,12 +3,15 @@ module core
    (input logic clk,
     input logic         reset,
 
+    input logic         memory_ready,
+    input logic         memory_valid,
     input logic [31:0]  read_memory_data,
     output logic [31:0] read_memory_address,
     output logic [31:0] write_memory_data,
     output logic [31:0] write_memory_address,
     output logic [31:0] write_memory_mask,
-    output logic        memory_write_enable,
+    output logic        memory_command,
+    output logic        memory_enable,
 
     output logic [31:0] debug_pc,
     output logic [31:0] debug_instruction,
@@ -56,12 +59,16 @@ module core
                          reset,
                          instruction,
 
+                         memory_ready,
+                         memory_valid,
+
                          execute_result_write_enable,
                          load_memory_data_write_enable,
                          pc_write_enable,
                          instruction_write_enable,
                          register_file_write_enable,
-                         memory_write_enable,
+                         memory_command,
+                         memory_enable,
 
                          write_immediate_to_register_file,
                          write_pc_inc_to_register_file,
