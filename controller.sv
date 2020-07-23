@@ -126,6 +126,8 @@ module controller(input logic        clk,
 
         csr_number = instruction[31:20];
 
+        trap = 0;
+
         case(current_state)
           fetch:
             begin

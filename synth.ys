@@ -1,0 +1,16 @@
+read_verilog -sv alu.sv
+read_verilog -sv comparer.sv
+read_verilog -sv controller.sv
+read_verilog -sv core.sv
+read_verilog -sv csr_register.sv
+read_verilog -sv data_path.sv
+read_verilog -sv immediate_decoder.sv
+read_verilog -sv load_memory_decoder.sv
+read_verilog -sv regcell.sv
+read_verilog -sv regcell_reset.sv
+read_verilog -sv register_file.sv
+read_verilog -sv shifter.sv
+read_verilog -sv store_memory_encoder.sv
+
+hierarchy -check
+synth_ice40

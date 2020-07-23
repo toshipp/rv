@@ -26,6 +26,9 @@ sim: sim.cc $(wildcard *.sv)
 	make -C generated -f Vsim.mk
 	mv generated/sim sim
 
+synth: synth.ys $(wildcard *.sv)
+	yosys -s synth.ys
+
 clean:
 	rm -rf *__gen.v *.vvp sim generated
 
