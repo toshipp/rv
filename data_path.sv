@@ -149,6 +149,7 @@ module data_path
                                              write_memory_mask);
 
    csr_register csr_register(clk,
+                             reset,
                              csr_number,
                              csr_access_type,
                              csr_in,
