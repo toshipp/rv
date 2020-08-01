@@ -21,6 +21,9 @@ module csr_register(input logic clk,
    logic [31:0]                         current;
    logic [31:0]                         next;
    logic                                write_enable;
+   logic                                mie_meie;
+   logic                                mie_mtie;
+   logic                                mie_msie;
 
    always_ff @(posedge clk)
      if(reset)
@@ -35,66 +38,62 @@ module csr_register(input logic clk,
              mtvec <= next;
            `MEPC:
              mepc <= next;
+           `MIE:
+             begin
+                mie_meie <= next[11];
+                mie_mtie <= next[7];
+                mie_msie <= next[3];
+             end
            default:
              ;
          endcase
 
    assign write_enable = access_type != `CSR_READ_ONLY;
+   assign out = current;
 
    always_comb
      case(number)
        `MISA:
-         out = 32'h40000000 /* XLEN=32 */
-               | (32'b1 << 8) /* I */ ;
+         current = 32'h40000000 /* XLEN=32 */
+                   | (32'b1 << 8) /* I */ ;
 
        `MVENDORID:
-         out = 32'b0;
+         current = 32'b0;
 
        `MARCHID:
-         out = 32'b0;
+         current = 32'b0;
 
        `MIMPID:
-         out = 32'b0;
+         current = 32'b0;
 
        `MHARTID:
-         out = 32'b0;
+         current = 32'b0;
 
        `MSTATUS:
-         out = 'bx;             // todo
+         current = 'bx;             // todo
 
        `MTVEC:
-         out = mtvec;
+         current = mtvec;
 
        `MIE:
-         out = 'bx;             // todo
+         current = {20'b0, mie_meie, 3'b0, mie_mtie, 3'b0, mie_msie, 3'b0};
 
        `MEPC:
-         out = mepc;
+         current = mepc;
 
        default:
-         out = 32'b0;
+         current = 32'b0;
      endcase
 
    always_comb
-     begin
-        case(number)
-          `MTVEC:
-            current = mtvec;
-          `MEPC:
-            current = mepc;
-          default:
-            current = 'bx;
-        endcase
-
-        case(access_type)
-          `CSR_WRITE:
-            next = in;
-          `CSR_SET:
-            next = current | in;
-          `CSR_CLEAR:
-            next = current & ~in;
-          default:
-            next = 'bx;
-        endcase
-     end
+     case(access_type)
+       `CSR_WRITE:
+         next = in;
+       `CSR_SET:
+         next = current | in;
+       `CSR_CLEAR:
+         next = current & ~in;
+       default:
+         next = 'bx;
+     endcase
 endmodule
