@@ -148,12 +148,12 @@ module data_path
                                              write_memory_data,
                                              write_memory_mask);
 
-   csr_register csr_register(clk,
-                             reset,
-                             csr_number,
-                             csr_access_type,
-                             csr_in,
-                             csr_out);
+   csr csr(clk,
+           reset,
+           csr_number,
+           csr_access_type,
+           csr_in,
+           csr_out);
 
    assign debug_pc = pc_current;
    assign debug_result = execute_result_in;

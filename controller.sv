@@ -1,7 +1,7 @@
 `include "immediate_decoder.h"
 `include "shifter.h"
 `include "alu.h"
-`include "csr_register.h"
+`include "csr.h"
 
 `define LUI 7'b0110111
 `define AUIPC 7'b0010111

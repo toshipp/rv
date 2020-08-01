@@ -1,4 +1,4 @@
-`include "csr_register.h"
+`include "csr.h"
 
 `define MISA 12'h301
 `define MVENDORID 12'hf11
@@ -10,20 +10,20 @@
 `define MIE 12'h304
 `define MEPC 12'h341
 
-module csr_register(input logic clk,
-                    input logic         reset,
-                    input logic [11:0]  number,
-                    input logic [1:0]   access_type,
-                    input logic [31:0]  in,
-                    output logic [31:0] out);
-   logic [31:0]                         mepc;
-   logic [31:0]                         mtvec;
-   logic [31:0]                         current;
-   logic [31:0]                         next;
-   logic                                write_enable;
-   logic                                mie_meie;
-   logic                                mie_mtie;
-   logic                                mie_msie;
+module csr(input logic clk,
+           input logic         reset,
+           input logic [11:0]  number,
+           input logic [1:0]   access_type,
+           input logic [31:0]  in,
+           output logic [31:0] out);
+   logic [31:0]                mepc;
+   logic [31:0]                mtvec;
+   logic [31:0]                current;
+   logic [31:0]                next;
+   logic                       write_enable;
+   logic                       mie_meie;
+   logic                       mie_mtie;
+   logic                       mie_msie;
 
    always_ff @(posedge clk)
      if(reset)
