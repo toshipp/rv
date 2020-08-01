@@ -2,3 +2,4 @@
 *.vvp
 *.v
 sim
+generated/
