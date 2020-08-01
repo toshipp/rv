@@ -21,7 +21,6 @@ module csr_register(input logic clk,
    logic [31:0]                         current;
    logic [31:0]                         next;
    logic                                write_enable;
-   logic                                is_mepc;
 
    always_ff @(posedge clk)
      if(reset)
@@ -40,13 +39,12 @@ module csr_register(input logic clk,
              ;
          endcase
 
-   assign is_mepc = number == 12'h341;
    assign write_enable = access_type != `CSR_READ_ONLY;
 
    always_comb
      case(number)
        `MISA:
-         out = 32'h80000000 /* 32bit */
+         out = 32'h40000000 /* XLEN=32 */
                | (32'b1 << 8) /* I */ ;
 
        `MVENDORID:
