@@ -24,6 +24,7 @@ module csr(input logic clk,
    logic                       mie_meie;
    logic                       mie_mtie;
    logic                       mie_msie;
+   logic                       mstatus_mie;
 
    always_ff @(posedge clk)
      if(reset)
@@ -44,6 +45,8 @@ module csr(input logic clk,
                 mie_mtie <= next[7];
                 mie_msie <= next[3];
              end
+           `MSTATUS:
+             mstatus_mie <= next[3];
            default:
              ;
          endcase
@@ -70,7 +73,7 @@ module csr(input logic clk,
          current = 32'b0;
 
        `MSTATUS:
-         current = 'bx;             // todo
+         current = {28'b0, mstatus_mie, 3'b0};
 
        `MTVEC:
          current = mtvec;
