@@ -39,20 +39,21 @@ module data_path
     input logic [2:0]   compare_type,
     input logic [2:0]   load_memory_decoder_type,
     input logic [1:0]   store_memory_encoder_type,
-    input logic [1:0]   csr_access_type,
-
-    input logic [11:0]  csr_number,
 
     output logic [31:0] instruction,
 
-    output logic [31:0] debug_pc,
+    output logic [31:0] current_pc,
+    input logic [31:0]  trap_pc,
+
+    output logic [31:0] csr_in,
+    input logic [31:0]  csr_out,
+
     output logic [31:0] debug_in1,
     output logic [31:0] debug_in2,
     output logic [31:0] debug_result
     );
 
-   logic [31:0]         pc_next;
-   logic [31:0]         pc_current;
+   logic [31:0]         next_pc;
    logic [31:0]         pc_inc;
 
    logic [31:0]         register_file_write_data;
@@ -80,14 +81,11 @@ module data_path
 
    logic [31:0]         load_memory_data;
 
-   logic [31:0]         csr_in;
-   logic [31:0]         csr_out;
-
    regcell_reset #(START_ADDRESS) reg_pc(clk,
                                          reset,
-                                         pc_next,
+                                         next_pc,
                                          pc_write_enable,
-                                         pc_current);
+                                         current_pc);
 
    regcell reg_instruction(clk,
                            read_memory_data,
@@ -148,20 +146,12 @@ module data_path
                                              write_memory_data,
                                              write_memory_mask);
 
-   csr csr(clk,
-           reset,
-           csr_number,
-           csr_access_type,
-           csr_in,
-           csr_out);
-
-   assign debug_pc = pc_current;
    assign debug_result = execute_result_in;
    assign debug_in1 = alu_in1;
    assign debug_in2 = alu_in2;
 
-   assign pc_inc = pc_current + 4;
-   assign pc_next = (write_execute_result_to_pc ||
+   assign pc_inc = current_pc + 4;
+   assign next_pc = (write_execute_result_to_pc ||
                      (write_execute_result_to_pc_if_compare_met && compare_result)) ? execute_result : pc_inc;
 
    always_comb
@@ -176,7 +166,7 @@ module data_path
          register_file_write_data = execute_result;
      endcase
 
-   assign alu_in1 = use_pc_for_alu ? pc_current : register_file_read_data1;
+   assign alu_in1 = use_pc_for_alu ? current_pc : register_file_read_data1;
    assign alu_in2 = use_immediate ?  immediate : register_file_read_data2;
 
    assign compare_in2 = use_immediate_for_compare ? immediate : register_file_read_data2;
@@ -198,7 +188,7 @@ module data_path
          execute_result_in = 'bx;
      endcase
 
-   assign read_memory_address = use_execute_result_for_read_memory ? execute_result : pc_current;
+   assign read_memory_address = use_execute_result_for_read_memory ? execute_result : current_pc;
 
    assign write_memory_address = execute_result;
 

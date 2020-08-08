@@ -29,6 +29,8 @@ module controller(input logic        clk,
                   input logic         memory_ready,
                   input logic         memory_valid,
 
+                  input logic         trap,
+
                   output logic        execute_result_write_enable,
                   output logic        load_memory_data_write_enable,
                   output logic        pc_write_enable,
@@ -64,7 +66,7 @@ module controller(input logic        clk,
                   output logic [11:0] csr_number,
 
                   output logic [2:0]  debug_state,
-                  output logic        trap);
+                  output logic        exception);
 
    logic [6:0]                        opcode;
    logic [2:0]                        funct3;
@@ -126,7 +128,7 @@ module controller(input logic        clk,
 
         csr_number = instruction[31:20];
 
-        trap = 0;
+        exception = 0;
 
         case(current_state)
           fetch:
@@ -217,7 +219,7 @@ module controller(input logic        clk,
                          else if(funct7 == 7'b0100000)
                            shift_type = `SHIFT_ARITH;
                          else
-                           trap = 1;
+                           exception = 1;
                       end
                     else
                       // alu
@@ -257,12 +259,12 @@ module controller(input logic        clk,
                              use_immediate = 1;
                           end
                         default:
-                          trap = 1;
+                          exception = 1;
                       endcase
                     next_state = write_back;
                  end
                else
-                 trap = 1;
+                 exception = 1;
             end
 
           memory:

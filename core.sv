@@ -13,6 +13,10 @@ module core
     output logic        memory_command,
     output logic        memory_enable,
 
+    input logic         external_interrupt,
+    input logic         timer_interrupt,
+    input logic         software_interrupt,
+
     output logic [31:0] debug_pc,
     output logic [31:0] debug_instruction,
     output logic [2:0]  debug_state,
@@ -55,12 +59,21 @@ module core
 
    logic [11:0]         csr_number;
 
+   logic [31:0]         current_pc;
+   logic [31:0]         trap_pc;
+   logic                exception;
+
+   logic [31:0]         csr_in;
+   logic [31:0]         csr_out;
+
    controller controller(clk,
                          reset,
                          instruction,
 
                          memory_ready,
                          memory_valid,
+
+                         trap,
 
                          execute_result_write_enable,
                          load_memory_data_write_enable,
@@ -97,7 +110,7 @@ module core
                          csr_number,
 
                          debug_state,
-                         trap);
+                         exception);
 
    data_path #(START_ADDRESS) data_path(clk,
                                         reset,
@@ -135,16 +148,32 @@ module core
                                         compare_type,
                                         load_memory_decoder_type,
                                         store_memory_encoder_type,
-                                        csr_access_type,
-
-                                        csr_number,
-
                                         instruction,
 
-                                        debug_pc,
+                                        current_pc,
+                                        trap_pc,
+
+                                        csr_in,
+                                        csr_out,
+
                                         debug_in1,
                                         debug_in2,
                                         debug_result);
 
+   csr csr(clk,
+           reset,
+           csr_number,
+           csr_access_type,
+           csr_in,
+           csr_out,
+           external_interrupt,
+           timer_interrupt,
+           software_interrupt,
+           exception,
+           current_pc,
+           trap_pc,
+           trap);
+
    assign debug_instruction = instruction;
+   assign debug_pc = current_pc;
 endmodule

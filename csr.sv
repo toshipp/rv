@@ -15,7 +15,14 @@ module csr(input logic clk,
            input logic [11:0]  number,
            input logic [1:0]   access_type,
            input logic [31:0]  in,
-           output logic [31:0] out);
+           output logic [31:0] out,
+           input logic         external_interrupt,
+           input logic         timer_interrupt,
+           input logic         software_interrupt,
+           input logic         exception,
+           input logic [31:0]  current_pc,
+           output logic [31:0] trap_pc,
+           output logic        trap);
    logic [31:0]                mepc;
    logic [31:0]                mtvec;
    logic [31:0]                current;
@@ -26,6 +33,13 @@ module csr(input logic clk,
    logic                       mie_msie;
    logic                       mstatus_mie;
 
+   assign trap = ((mstatus_mie
+                   && (external_interrupt && mie_meie
+                       || timer_interrupt && mie_mtie
+                       || software_interrupt && mie_msie))
+                  || exception);
+   assign trap_pc = mtvec;
+
    always_ff @(posedge clk)
      if(reset)
        begin
@@ -33,7 +47,9 @@ module csr(input logic clk,
           mtvec <= 0;
        end
      else
-       if(write_enable)
+       if(trap)
+         mepc <= current_pc;
+       else if(write_enable)
          case(number)
            `MTVEC:
              mtvec <= next;
