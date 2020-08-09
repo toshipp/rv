@@ -64,6 +64,7 @@ module controller(input logic        clk,
                   output logic [1:0]  csr_access_type,
 
                   output logic [11:0] csr_number,
+                  output logic        exit_trap,
 
                   output logic [2:0]  debug_state,
                   output logic        exception);
@@ -127,6 +128,7 @@ module controller(input logic        clk,
         csr_access_type = 2'b00;
 
         csr_number = instruction[31:20];
+        exit_trap = 0;
 
         exception = 0;
 
@@ -236,10 +238,7 @@ module controller(input logic        clk,
                else if(opcode == `SYSTEM)
                  begin
                     if(instruction == `MRET)
-                      begin
-                         execute_csr = 1;
-                         csr_number = 12'h341;
-                      end
+                      exit_trap = 1;
                     else
                       case(funct3)
                         `CSRRW:

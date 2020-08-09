@@ -58,9 +58,10 @@ module core
    logic [1:0]          csr_access_type;
 
    logic [11:0]         csr_number;
+   logic                exit_trap;
 
    logic [31:0]         current_pc;
-   logic [31:0]         trap_pc;
+   logic [31:0]         csr_next_pc;
    logic                exception;
 
    logic [31:0]         csr_in;
@@ -108,6 +109,7 @@ module core
                          csr_access_type,
 
                          csr_number,
+                         exit_trap,
 
                          debug_state,
                          exception);
@@ -141,6 +143,7 @@ module core
                                         use_immediate,
                                         use_immediate_for_compare,
                                         use_pc_for_alu,
+                                        exit_trap,
 
                                         immediate_type,
                                         alu_type,
@@ -151,7 +154,7 @@ module core
                                         instruction,
 
                                         current_pc,
-                                        trap_pc,
+                                        csr_next_pc,
 
                                         csr_in,
                                         csr_out,
@@ -170,8 +173,9 @@ module core
            timer_interrupt,
            software_interrupt,
            exception,
+           exit_trap,
            current_pc,
-           trap_pc,
+           csr_next_pc,
            trap);
 
    assign debug_instruction = instruction;

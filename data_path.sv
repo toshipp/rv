@@ -32,6 +32,7 @@ module data_path
     input logic         use_immediate,
     input logic         use_immediate_for_compare,
     input logic         use_pc_for_alu,
+    input logic         exit_trap,
 
     input logic [2:0]   immediate_type,
     input logic [2:0]   alu_type,
@@ -43,7 +44,7 @@ module data_path
     output logic [31:0] instruction,
 
     output logic [31:0] current_pc,
-    input logic [31:0]  trap_pc,
+    input logic [31:0]  csr_next_pc,
 
     output logic [31:0] csr_in,
     input logic [31:0]  csr_out,
@@ -184,6 +185,8 @@ module data_path
          execute_result_in = shift_out;
        execute_csr:
          execute_result_in = csr_out;
+       exit_trap:
+         execute_result_in = csr_next_pc;
        default:
          execute_result_in = 'bx;
      endcase

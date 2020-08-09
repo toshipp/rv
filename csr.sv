@@ -20,35 +20,53 @@ module csr(input logic clk,
            input logic         timer_interrupt,
            input logic         software_interrupt,
            input logic         exception,
+           input logic         exit_trap,
            input logic [31:0]  current_pc,
-           output logic [31:0] trap_pc,
+           output logic [31:0] next_pc,
            output logic        trap);
    logic [31:0]                mepc;
    logic [31:0]                mtvec;
-   logic [31:0]                current;
-   logic [31:0]                next;
-   logic                       write_enable;
    logic                       mie_meie;
    logic                       mie_mtie;
    logic                       mie_msie;
    logic                       mstatus_mie;
+   logic                       mstatus_mpie;
+
+   logic                       write_enable;
+   logic [31:0]                current;
+   logic [31:0]                next;
+
+   assign write_enable = access_type != `CSR_READ_ONLY;
 
    assign trap = ((mstatus_mie
                    && (external_interrupt && mie_meie
                        || timer_interrupt && mie_mtie
                        || software_interrupt && mie_msie))
                   || exception);
-   assign trap_pc = mtvec;
 
    always_ff @(posedge clk)
      if(reset)
        begin
           mepc <= 0;
           mtvec <= 0;
+          mie_meie <= 0;
+          mie_mtie <= 0;
+          mie_msie <= 0;
+          mstatus_mie <= 0;
+          mstatus_mpie <= 0;
        end
      else
        if(trap)
-         mepc <= current_pc;
+         begin
+            mepc <= current_pc;
+            mstatus_mpie <= mstatus_mie;
+            mstatus_mie <= 0;
+         end
+       else if(exit_trap)
+         begin
+            mstatus_mie <= mstatus_mpie;
+            mstatus_mpie <= 1;
+         end
        else if(write_enable)
          case(number)
            `MTVEC:
@@ -67,8 +85,17 @@ module csr(input logic clk,
              ;
          endcase
 
-   assign write_enable = access_type != `CSR_READ_ONLY;
    assign out = current;
+
+   always_comb
+     case(1'b1)
+       trap:
+         next_pc = mtvec;
+       exit_trap:
+         next_pc = mepc;
+       default:
+         next_pc = 'bx;
+     endcase
 
    always_comb
      case(number)
@@ -115,4 +142,5 @@ module csr(input logic clk,
        default:
          next = 'bx;
      endcase
+
 endmodule
