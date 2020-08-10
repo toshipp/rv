@@ -81,7 +81,10 @@ module csr(input logic clk,
                 mie_msie <= next[3];
              end
            `MSTATUS:
-             mstatus_mie <= next[3];
+             begin
+                mstatus_mie <= next[3];
+                mstatus_mpie <= next[7];
+             end
            default:
              ;
          endcase
@@ -117,13 +120,22 @@ module csr(input logic clk,
          current = 32'b0;
 
        `MSTATUS:
-         current = {28'b0, mstatus_mie, 3'b0};
+         begin
+            current = 32'b0;
+            current[7] = mstatus_mpie;
+            current[3] = mstatus_mie;
+         end
 
        `MTVEC:
          current = mtvec;
 
        `MIE:
-         current = {20'b0, mie_meie, 3'b0, mie_mtie, 3'b0, mie_msie, 3'b0};
+         begin
+            current = 32'b0;
+            current[11] = mie_meie;
+            current[7] = mie_mtie;
+            current[3] = mie_msie;
+         end
 
        `MEPC:
          current = mepc;
