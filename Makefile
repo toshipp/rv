@@ -1,7 +1,7 @@
 TESTS := $(wildcard *_test.sv)
 TEST_TARGETS := $(patsubst %.sv,%,$(TESTS))
 
-test: $(TEST_TARGETS)
+test: $(TEST_TARGETS) sim synth
 
 %: %.vvp
 	vvp $<
