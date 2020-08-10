@@ -23,6 +23,7 @@ module csr(input logic clk,
            input logic         exit_trap,
            input logic [31:0]  current_pc,
            output logic [31:0] next_pc,
+           input logic         handle_trap,
            output logic        trap);
    logic [31:0]                mepc;
    logic [31:0]                mtvec;
@@ -56,7 +57,7 @@ module csr(input logic clk,
           mstatus_mpie <= 0;
        end
      else
-       if(trap)
+       if(handle_trap)
          begin
             mepc <= current_pc;
             mstatus_mpie <= mstatus_mie;

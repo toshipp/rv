@@ -64,6 +64,7 @@ module controller(input logic        clk,
                   output logic [1:0]  csr_access_type,
 
                   output logic [11:0] csr_number,
+                  output logic        handle_trap,
                   output logic        exit_trap,
 
                   output logic [2:0]  debug_state,
@@ -74,18 +75,19 @@ module controller(input logic        clk,
    logic [6:0]                        funct7;
 
    typedef enum                       logic [2:0]  {
-                                                    fetch,
-                                                    decode,
-                                                    execute,
-                                                    memory,
-                                                    write_back
+                                                    state_fetch,
+                                                    state_decode,
+                                                    state_execute,
+                                                    state_memory,
+                                                    state_write_back,
+                                                    state_trap
                                                     } state;
    state current_state;
    state next_state;
 
    always_ff @(posedge clk)
      if(reset)
-       current_state <= fetch;
+       current_state <= state_fetch;
      else
        current_state <= next_state;
 
@@ -128,14 +130,15 @@ module controller(input logic        clk,
         csr_access_type = 2'b00;
 
         csr_number = instruction[31:20];
+        handle_trap = 0;
         exit_trap = 0;
 
         exception = 0;
 
         case(current_state)
-          fetch:
+          state_fetch:
             begin
-               next_state = fetch;
+               next_state = state_fetch;
                if(memory_ready)
                  begin
                     memory_enable = 1;
@@ -143,19 +146,22 @@ module controller(input logic        clk,
                  end
                if(memory_valid)
                  begin
-                    next_state = decode;
+                    next_state = state_decode;
                     instruction_write_enable = 1;
                  end
             end
 
-          decode:
+          state_decode:
             begin
-               next_state = execute;
+               next_state = state_execute;
+
+               if(trap)
+                 next_state = state_trap;
             end
 
-          execute:
+          state_execute:
             begin
-               next_state = write_back;
+               next_state = state_write_back;
                execute_result_write_enable = 1;
                if(opcode == `LUI)
                  ; // do nothing
@@ -194,7 +200,7 @@ module controller(input logic        clk,
                     alu_type = `ALU_ADD;
                     use_immediate = 1;
                     immediate_type = (opcode == `LOAD) ? `IMM_I : `IMM_S;
-                    next_state = memory;
+                    next_state = state_memory;
                  end
                else if(opcode == `CALCI || opcode == `CALCR)
                  begin
@@ -233,7 +239,7 @@ module controller(input logic        clk,
                else if(opcode == `FENCE)
                  begin
                     // currently we have no cache, act as nop.
-                    next_state = write_back;
+                    next_state = state_write_back;
                  end
                else if(opcode == `SYSTEM)
                  begin
@@ -260,15 +266,15 @@ module controller(input logic        clk,
                         default:
                           exception = 1;
                       endcase
-                    next_state = write_back;
+                    next_state = state_write_back;
                  end
                else
                  exception = 1;
             end
 
-          memory:
+          state_memory:
             begin
-               next_state = memory;
+               next_state = state_memory;
                if(memory_ready)
                  memory_enable = 1;
                if(opcode == `LOAD)
@@ -283,7 +289,7 @@ module controller(input logic        clk,
                  end
                if(memory_valid)
                  begin
-                    next_state = write_back;
+                    next_state = state_write_back;
                     if(opcode == `LOAD)
                       begin
                          load_memory_decoder_type = funct3;
@@ -292,9 +298,9 @@ module controller(input logic        clk,
                  end
             end
 
-          write_back:
+          state_write_back:
             begin
-               next_state = fetch;
+               next_state = state_fetch;
                pc_write_enable = 1;
 
                if(opcode == `LUI ||
@@ -333,6 +339,13 @@ module controller(input logic        clk,
                     if(funct3 != 3'b000 && funct3 != 3'b100)
                       register_file_write_enable = 1;
                  end
+            end
+
+          state_trap:
+            begin
+               next_state = state_fetch;
+               pc_write_enable = 1;
+               handle_trap = 1;
             end
 
           default:

@@ -32,6 +32,7 @@ module data_path
     input logic         use_immediate,
     input logic         use_immediate_for_compare,
     input logic         use_pc_for_alu,
+    input logic         handle_trap,
     input logic         exit_trap,
 
     input logic [2:0]   immediate_type,
@@ -53,6 +54,8 @@ module data_path
     output logic [31:0] debug_in2,
     output logic [31:0] debug_result
     );
+
+   logic                use_execute_result_to_pc;
 
    logic [31:0]         next_pc;
    logic [31:0]         pc_inc;
@@ -152,8 +155,20 @@ module data_path
    assign debug_in2 = alu_in2;
 
    assign pc_inc = current_pc + 4;
-   assign next_pc = (write_execute_result_to_pc ||
-                     (write_execute_result_to_pc_if_compare_met && compare_result)) ? execute_result : pc_inc;
+
+   assign use_execute_result_to_pc = (write_execute_result_to_pc
+                                      || (write_execute_result_to_pc_if_compare_met
+                                          && compare_result));
+
+   always_comb
+     case(1'b1)
+       use_execute_result_to_pc:
+         next_pc = execute_result;
+       handle_trap:
+         next_pc = csr_next_pc;
+       default:
+         next_pc = pc_inc;
+     endcase
 
    always_comb
      case(1'b1)

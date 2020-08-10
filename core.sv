@@ -58,6 +58,7 @@ module core
    logic [1:0]          csr_access_type;
 
    logic [11:0]         csr_number;
+   logic                handle_trap;
    logic                exit_trap;
 
    logic [31:0]         current_pc;
@@ -109,6 +110,7 @@ module core
                          csr_access_type,
 
                          csr_number,
+                         handle_trap,
                          exit_trap,
 
                          debug_state,
@@ -143,6 +145,7 @@ module core
                                         use_immediate,
                                         use_immediate_for_compare,
                                         use_pc_for_alu,
+                                        handle_trap,
                                         exit_trap,
 
                                         immediate_type,
@@ -176,6 +179,7 @@ module core
            exit_trap,
            current_pc,
            csr_next_pc,
+           handle_trap,
            trap);
 
    assign debug_instruction = instruction;
