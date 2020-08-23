@@ -1,13 +1,12 @@
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <verilated.h>
 
-#include <memory>
 #include <iostream>
 #include <map>
-
-#include <verilated.h>
+#include <memory>
 
 #include "Vsim.h"
 
@@ -43,8 +42,8 @@ int simulate(int argc, char** argv) {
     top->clk = 0;
 
     while (!Verilated::gotFinish()) {
-        if(top->clk > 0) {
-            if(reset_clocks > 0) {
+        if (top->clk > 0) {
+            if (reset_clocks > 0) {
                 --reset_clocks;
             } else {
                 top->reset = 0;
@@ -53,25 +52,33 @@ int simulate(int argc, char** argv) {
 
         top->eval();
 
-        if(top->clk > 0) {
+        if (top->clk > 0) {
             std::cerr << "#eval" << std::endl;
             std::cerr << "pc: " << std::hex << top->debug_pc << std::endl;
-            std::cerr << "inst: " << std::hex << top->debug_instruction << std::endl;
-            std::cerr << "state: " << std::dec << static_cast<unsigned int>(top->debug_state) << std::endl;
-            std::cerr << "in1: " << std::hex << static_cast<unsigned int>(top->debug_in1) << std::endl;
-            std::cerr << "in2: " << std::hex << static_cast<unsigned int>(top->debug_in2) << std::endl;
-            std::cerr << "result: " << std::hex << static_cast<unsigned int>(top->debug_result) << std::endl;
+            std::cerr << "inst: " << std::hex << top->debug_instruction
+                      << std::endl;
+            std::cerr << "state: " << std::dec
+                      << static_cast<unsigned int>(top->debug_state)
+                      << std::endl;
+            std::cerr << "in1: " << std::hex
+                      << static_cast<unsigned int>(top->debug_in1) << std::endl;
+            std::cerr << "in2: " << std::hex
+                      << static_cast<unsigned int>(top->debug_in2) << std::endl;
+            std::cerr << "result: " << std::hex
+                      << static_cast<unsigned int>(top->debug_result)
+                      << std::endl;
         }
 
-        if(top->trap) {
+        if (top->trap) {
             std::cerr << "trap" << std::endl;
 
-            if(top->debug_instruction == INST_ECALL){
-                svSetScope(svGetScopeFromName("TOP.sim.core.data_path.register_file"));
+            if (top->debug_instruction == INST_ECALL) {
+                svSetScope(
+                    svGetScopeFromName("TOP.sim.core.data_path.register_file"));
                 int a0, a7;
                 read_register(10, &a0);
                 read_register(17, &a7);
-                if(a7 == 93 && a0 == 0) {
+                if (a7 == 93 && a0 == 0) {
                     std::cerr << "pass" << std::endl;
                     return 0;
                 } else {
@@ -92,22 +99,22 @@ int simulate(int argc, char** argv) {
 
 void load_instructions(const char* name) {
     int fd = ::open(name, O_RDONLY);
-    if(fd == -1) {
+    if (fd == -1) {
         throw std::runtime_error("failed to open");
     }
 
     std::uint32_t data;
     std::uint32_t addr = start_address;
 
-    while(true) {
+    while (true) {
         int ret = ::read(fd, &data, sizeof(data));
-        if(ret == -1) {
+        if (ret == -1) {
             throw std::runtime_error("failed to read");
         }
-        if(ret == 0) {
+        if (ret == 0) {
             break;
         }
-        if(ret != 4) {
+        if (ret != 4) {
             throw std::runtime_error("failed to 4 byte read");
         }
 
@@ -117,11 +124,8 @@ void load_instructions(const char* name) {
     ::close(fd);
 }
 
-
-
-
 int main(int argc, char** argv, char** env) {
-    if(argc < 2) {
+    if (argc < 2) {
         std::cerr << "no executable provided" << std::endl;
         return 1;
     }
@@ -129,7 +133,7 @@ int main(int argc, char** argv, char** env) {
     try {
         load_instructions(argv[1]);
         return simulate(argc, argv);
-    } catch(const std::runtime_error& e) {
+    } catch (const std::runtime_error& e) {
         std::cerr << e.what() << std::endl;
         return 1;
     }
