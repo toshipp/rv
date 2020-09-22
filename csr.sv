@@ -10,150 +10,122 @@
 `define MIE 12'h304
 `define MEPC 12'h341
 
-module csr(input logic clk,
-           input logic         reset,
-           input logic [11:0]  number,
-           input logic [1:0]   access_type,
-           input logic [31:0]  in,
-           output logic [31:0] out,
-           input logic         external_interrupt,
-           input logic         timer_interrupt,
-           input logic         software_interrupt,
-           input logic         exception,
-           input logic         exit_trap,
-           input logic [31:0]  current_pc,
-           output logic [31:0] next_pc,
-           input logic         handle_trap,
-           output logic        trap);
-   logic [31:0]                mepc;
-   logic [31:0]                mtvec;
-   logic                       mie_meie;
-   logic                       mie_mtie;
-   logic                       mie_msie;
-   logic                       mstatus_mie;
-   logic                       mstatus_mpie;
+module csr (
+    input  logic        clk,
+    input  logic        reset,
+    input  logic [11:0] number,
+    input  logic [ 1:0] access_type,
+    input  logic [31:0] in,
+    output logic [31:0] out,
+    input  logic        external_interrupt,
+    input  logic        timer_interrupt,
+    input  logic        software_interrupt,
+    input  logic        exception,
+    input  logic        exit_trap,
+    input  logic [31:0] current_pc,
+    output logic [31:0] next_pc,
+    input  logic        handle_trap,
+    output logic        trap
+);
+  logic [31:0] mepc;
+  logic [31:0] mtvec;
+  logic        mie_meie;
+  logic        mie_mtie;
+  logic        mie_msie;
+  logic        mstatus_mie;
+  logic        mstatus_mpie;
 
-   logic                       write_enable;
-   logic [31:0]                current;
-   logic [31:0]                next;
+  logic        write_enable;
+  logic [31:0] current;
+  logic [31:0] next;
 
-   assign write_enable = access_type != `CSR_READ_ONLY;
+  assign write_enable = access_type != `CSR_READ_ONLY;
 
-   assign trap = ((mstatus_mie
+  assign trap = ((mstatus_mie
                    && (external_interrupt && mie_meie
                        || timer_interrupt && mie_mtie
                        || software_interrupt && mie_msie))
                   || exception);
 
-   always_ff @(posedge clk)
-     if(reset)
-       begin
-          mepc <= 0;
-          mtvec <= 0;
-          mie_meie <= 0;
-          mie_mtie <= 0;
-          mie_msie <= 0;
-          mstatus_mie <= 0;
-          mstatus_mpie <= 0;
-       end
-     else
-       if(handle_trap)
-         begin
-            mepc <= current_pc;
-            mstatus_mpie <= mstatus_mie;
-            mstatus_mie <= 0;
-         end
-       else if(exit_trap)
-         begin
-            mstatus_mie <= mstatus_mpie;
-            mstatus_mpie <= 1;
-         end
-       else if(write_enable)
-         case(number)
-           `MTVEC:
-             mtvec <= next;
-           `MEPC:
-             mepc <= next;
-           `MIE:
-             begin
-                mie_meie <= next[11];
-                mie_mtie <= next[7];
-                mie_msie <= next[3];
-             end
-           `MSTATUS:
-             begin
-                mstatus_mie <= next[3];
-                mstatus_mpie <= next[7];
-             end
-           default:
-             ;
-         endcase
+  always_ff @(posedge clk)
+    if (reset) begin
+      mepc <= 0;
+      mtvec <= 0;
+      mie_meie <= 0;
+      mie_mtie <= 0;
+      mie_msie <= 0;
+      mstatus_mie <= 0;
+      mstatus_mpie <= 0;
+    end else if (handle_trap) begin
+      mepc <= current_pc;
+      mstatus_mpie <= mstatus_mie;
+      mstatus_mie <= 0;
+    end else if (exit_trap) begin
+      mstatus_mie <= mstatus_mpie;
+      mstatus_mpie <= 1;
+    end else if (write_enable)
+      case (number)
+        `MTVEC:  mtvec <= next;
+        `MEPC:   mepc <= next;
+        `MIE: begin
+          mie_meie <= next[11];
+          mie_mtie <= next[7];
+          mie_msie <= next[3];
+        end
+        `MSTATUS: begin
+          mstatus_mie <= next[3];
+          mstatus_mpie <= next[7];
+        end
+        default: ;
+      endcase
 
-   assign out = current;
+  assign out = current;
 
-   always_comb
-     case(1'b1)
-       trap:
-         next_pc = mtvec;
-       exit_trap:
-         next_pc = mepc;
-       default:
-         next_pc = 'bx;
-     endcase
+  always_comb
+    case (1'b1)
+      trap: next_pc = mtvec;
+      exit_trap: next_pc = mepc;
+      default: next_pc = 'bx;
+    endcase
 
-   always_comb
-     case(number)
-       `MISA:
-         current = 32'h40000000 /* XLEN=32 */
-                   | (32'b1 << 8) /* I */ ;
+  always_comb
+    case (number)
+      `MISA: current = 32'h40000000  /* XLEN=32 */ | (32'b1 << 8)  /* I */;
 
-       `MVENDORID:
-         current = 32'b0;
+      `MVENDORID: current = 32'b0;
 
-       `MARCHID:
-         current = 32'b0;
+      `MARCHID: current = 32'b0;
 
-       `MIMPID:
-         current = 32'b0;
+      `MIMPID: current = 32'b0;
 
-       `MHARTID:
-         current = 32'b0;
+      `MHARTID: current = 32'b0;
 
-       `MSTATUS:
-         begin
-            current = 32'b0;
-            current[7] = mstatus_mpie;
-            current[3] = mstatus_mie;
-         end
+      `MSTATUS: begin
+        current = 32'b0;
+        current[7] = mstatus_mpie;
+        current[3] = mstatus_mie;
+      end
 
-       `MTVEC:
-         current = mtvec;
+      `MTVEC: current = mtvec;
 
-       `MIE:
-         begin
-            current = 32'b0;
-            current[11] = mie_meie;
-            current[7] = mie_mtie;
-            current[3] = mie_msie;
-         end
+      `MIE: begin
+        current = 32'b0;
+        current[11] = mie_meie;
+        current[7] = mie_mtie;
+        current[3] = mie_msie;
+      end
 
-       `MEPC:
-         current = mepc;
+      `MEPC: current = mepc;
 
-       default:
-         current = 32'b0;
-     endcase
+      default: current = 32'b0;
+    endcase
 
-   always_comb
-     case(access_type)
-       `CSR_WRITE:
-         next = in;
-       `CSR_SET:
-         next = current | in;
-       `CSR_CLEAR:
-         next = current & ~in;
-       default:
-         next = 'bx;
-     endcase
+  always_comb
+    case (access_type)
+      `CSR_WRITE: next = in;
+      `CSR_SET: next = current | in;
+      `CSR_CLEAR: next = current & ~in;
+      default: next = 'bx;
+    endcase
 
 endmodule
