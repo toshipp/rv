@@ -2,3 +2,6 @@
 `define CSR_WRITE 2'b01
 `define CSR_SET 2'b10
 `define CSR_CLEAR 2'b11
+
+`define ILLEGAL_INSTRUCTION_CODE 2
+`define ECALL_CODE 11

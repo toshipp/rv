@@ -9,6 +9,7 @@
 `define MTVEC 12'h305
 `define MIE 12'h304
 `define MEPC 12'h341
+`define MCAUSE 12'h342
 
 module csr (
     input  logic        clk,
@@ -21,14 +22,17 @@ module csr (
     input  logic        timer_interrupt,
     input  logic        software_interrupt,
     input  logic        exception,
+    input  logic [30:0] exception_cause,
     input  logic        exit_trap,
     input  logic [31:0] current_pc,
-    output logic [31:0] next_pc,
+    output logic [31:0] trap_pc,
+    output logic [31:0] ret_pc,
     input  logic        handle_trap,
-    output logic        trap
+    output logic        interrupted
 );
   logic [31:0] mepc;
   logic [31:0] mtvec;
+  logic [31:0] mcause;
   logic        mie_meie;
   logic        mie_mtie;
   logic        mie_msie;
@@ -41,16 +45,16 @@ module csr (
 
   assign write_enable = access_type != `CSR_READ_ONLY;
 
-  assign trap = ((mstatus_mie
-                   && (external_interrupt && mie_meie
-                       || timer_interrupt && mie_mtie
-                       || software_interrupt && mie_msie))
-                  || exception);
+  assign interrupted = (mstatus_mie
+                        && (external_interrupt && mie_meie
+                            || timer_interrupt && mie_mtie
+                            || software_interrupt && mie_msie));
 
   always_ff @(posedge clk)
     if (reset) begin
       mepc <= 0;
       mtvec <= 0;
+      mcause <= 0;
       mie_meie <= 0;
       mie_mtie <= 0;
       mie_msie <= 0;
@@ -60,6 +64,13 @@ module csr (
       mepc <= current_pc;
       mstatus_mpie <= mstatus_mie;
       mstatus_mie <= 0;
+      mcause[31] <= exception ? 0 : 1;
+      case (1'b1)
+        mstatus_mie && external_interrupt && mie_meie: mcause[30:0] <= 11;
+        mstatus_mie && software_interrupt && mie_msie: mcause[30:0] <= 3;
+        mstatus_mie && timer_interrupt && mie_mtie: mcause[30:0] <= 7;
+        default: mcause[30:0] <= exception_cause;
+      endcase
     end else if (exit_trap) begin
       mstatus_mie <= mstatus_mpie;
       mstatus_mpie <= 1;
@@ -67,6 +78,7 @@ module csr (
       case (number)
         `MTVEC:  mtvec <= next;
         `MEPC:   mepc <= next;
+        `MCAUSE: mcause <= next;
         `MIE: begin
           mie_meie <= next[11];
           mie_mtie <= next[7];
@@ -81,12 +93,8 @@ module csr (
 
   assign out = current;
 
-  always_comb
-    case (1'b1)
-      trap: next_pc = mtvec;
-      exit_trap: next_pc = mepc;
-      default: next_pc = 'bx;
-    endcase
+  assign trap_pc = mtvec;
+  assign ret_pc = mepc;
 
   always_comb
     case (number)
@@ -116,6 +124,8 @@ module csr (
       end
 
       `MEPC: current = mepc;
+
+      `MCAUSE: current = mcause;
 
       default: current = 32'b0;
     endcase

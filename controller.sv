@@ -20,6 +20,7 @@
 `define CSRRWI 3'b101
 
 `define MRET 32'b0011000_00010_00000_000_00000_1110011
+`define ECALL 32'b000000000000_00000_000_00000_1110011
 
 module controller (
     input logic clk,
@@ -30,7 +31,7 @@ module controller (
     input logic memory_ready,
     input logic memory_valid,
 
-    input logic trap,
+    input logic interrupted,
 
     output logic execute_result_write_enable,
     output logic load_memory_data_write_enable,
@@ -68,8 +69,9 @@ module controller (
     output logic        handle_trap,
     output logic        exit_trap,
 
-    output logic [2:0] debug_state,
-    output logic       exception
+    output logic [ 2:0] debug_state,
+    output logic        exception,
+    output logic [30:0] exception_cause
 );
 
   logic [6:0] opcode;
@@ -87,11 +89,19 @@ module controller (
   state current_state;
   state next_state;
 
+  logic next_exception;
+  logic [30:0] next_exception_cause;
+
   always_ff @(posedge clk)
-     if(reset)
-       current_state <= state_fetch;
-     else
-       current_state <= next_state;
+    if (reset) begin
+      current_state <= state_fetch;
+      exception <= 0;
+      exception_cause <= 0;
+    end else begin
+      current_state <= next_state;
+      exception <= next_exception;
+      exception_cause <= next_exception_cause;
+    end
 
   assign opcode = instruction[6:0];
   assign funct3 = instruction[14:12];
@@ -134,11 +144,14 @@ module controller (
     handle_trap = 0;
     exit_trap = 0;
 
-    exception = 0;
+    next_exception = exception;
+    next_exception_cause = exception_cause;
 
     case (current_state)
       state_fetch: begin
         next_state = state_fetch;
+        next_exception = 0;
+        next_exception_cause = 0;
         if (memory_ready) begin
           memory_enable = 1;
           memory_command = 0;
@@ -152,7 +165,7 @@ module controller (
       state_decode: begin
         next_state = state_execute;
 
-        if (trap) next_state = state_trap;
+        if (interrupted) next_state = state_trap;
       end
 
       state_execute: begin
@@ -200,14 +213,13 @@ module controller (
                       // shift
                       begin
             execute_shift = 1;
-            if(funct3 == 3'b001)
-                           shift_type = `SHIFT_LEFT;
-                         else if(funct7 == 7'b0000000)
-                           shift_type = `SHIFT_RIGHT;
-                         else if(funct7 == 7'b0100000)
-                           shift_type = `SHIFT_ARITH;
-                         else
-                           exception = 1;
+            if (funct3 == 3'b001) shift_type = `SHIFT_LEFT;
+            else if (funct7 == 7'b0000000) shift_type = `SHIFT_RIGHT;
+            else if (funct7 == 7'b0100000) shift_type = `SHIFT_ARITH;
+            else begin
+              next_exception = 1;
+              next_exception_cause = `ILLEGAL_INSTRUCTION_CODE;
+            end
           end else  // alu
           begin
             execute_alu = 1;
@@ -218,7 +230,10 @@ module controller (
           next_state = state_write_back;
         end else if (opcode == `SYSTEM) begin
           if (instruction == `MRET) exit_trap = 1;
-          else
+          else if (instruction == `ECALL) begin
+            next_exception = 1;
+            next_exception_cause = `ECALL_CODE;
+          end else
             case (funct3)
               `CSRRW: begin
                 execute_csr = 1;
@@ -233,10 +248,18 @@ module controller (
                 csr_access_type = `CSR_CLEAR;
                 use_immediate = 1;
               end
-              default: exception = 1;
+              default: begin
+                next_exception = 1;
+                next_exception_cause = `ILLEGAL_INSTRUCTION_CODE;
+              end
             endcase
           next_state = state_write_back;
-        end else exception = 1;
+        end else begin
+          next_exception = 1;
+          next_exception_cause = `ILLEGAL_INSTRUCTION_CODE;
+        end
+
+        if (next_exception) next_state = state_trap;
       end
 
       state_memory: begin

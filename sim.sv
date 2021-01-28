@@ -11,8 +11,7 @@ module sim (
     output logic [ 2:0] debug_state,
     output logic [31:0] debug_in1,
     output logic [31:0] debug_in2,
-    output logic [31:0] debug_result,
-    output logic        trap
+    output logic [31:0] debug_result
 );
 
   logic        memory_ready;
@@ -45,8 +44,7 @@ module sim (
       debug_state,
       debug_in1,
       debug_in2,
-      debug_result,
-      trap
+      debug_result
   );
 
   memory memory (

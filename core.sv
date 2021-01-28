@@ -23,11 +23,12 @@ module core #(
     output logic [ 2:0] debug_state,
     output logic [31:0] debug_in1,
     output logic [31:0] debug_in2,
-    output logic [31:0] debug_result,
-    output logic        trap
+    output logic [31:0] debug_result
 );
 
   logic [31:0] instruction;
+
+  logic        interrupted;
 
   logic        execute_result_write_enable;
   logic        load_memory_data_write_enable;
@@ -64,8 +65,10 @@ module core #(
   logic        exit_trap;
 
   logic [31:0] current_pc;
-  logic [31:0] csr_next_pc;
+  logic [31:0] csr_trap_pc;
+  logic [31:0] csr_ret_pc;
   logic        exception;
+  logic [30:0] exception_cause;
 
   logic [31:0] csr_in;
   logic [31:0] csr_out;
@@ -78,7 +81,7 @@ module core #(
       memory_ready,
       memory_valid,
 
-      trap,
+      interrupted,
 
       execute_result_write_enable,
       load_memory_data_write_enable,
@@ -117,7 +120,8 @@ module core #(
       exit_trap,
 
       debug_state,
-      exception
+      exception,
+      exception_cause
   );
 
   data_path #(START_ADDRESS) data_path (
@@ -162,7 +166,8 @@ module core #(
       instruction,
 
       current_pc,
-      csr_next_pc,
+      csr_trap_pc,
+      csr_ret_pc,
 
       csr_in,
       csr_out,
@@ -183,11 +188,13 @@ module core #(
       timer_interrupt,
       software_interrupt,
       exception,
+      exception_cause,
       exit_trap,
       current_pc,
-      csr_next_pc,
+      csr_trap_pc,
+      csr_ret_pc,
       handle_trap,
-      trap
+      interrupted
   );
 
   assign debug_instruction = instruction;

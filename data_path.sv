@@ -46,7 +46,8 @@ module data_path #(
     output logic [31:0] instruction,
 
     output logic [31:0] current_pc,
-    input  logic [31:0] csr_next_pc,
+    input  logic [31:0] csr_trap_pc,
+    input  logic [31:0] csr_ret_pc,
 
     output logic [31:0] csr_in,
     input  logic [31:0] csr_out,
@@ -188,7 +189,7 @@ module data_path #(
   always_comb
     case (1'b1)
       use_execute_result_to_pc: next_pc = execute_result;
-      handle_trap: next_pc = csr_next_pc;
+      handle_trap: next_pc = csr_trap_pc;
       default: next_pc = pc_inc;
     endcase
 
@@ -214,7 +215,7 @@ module data_path #(
       execute_compare: execute_result_in = compare_out_extended;
       execute_shift: execute_result_in = shift_out;
       execute_csr: execute_result_in = csr_out;
-      exit_trap: execute_result_in = csr_next_pc;
+      exit_trap: execute_result_in = csr_ret_pc;
       default: execute_result_in = 'bx;
     endcase
 

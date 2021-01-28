@@ -14,6 +14,8 @@ static const std::uint32_t INST_ECALL = 0x73;
 
 static const std::uint32_t start_address = 0x80000000;
 
+static const std::uint32_t tohost_address = 0x80001000;
+
 using MemoryMap = std::map<std::uint32_t, std::uint32_t>;
 
 MemoryMap& getMemoryInstance() {
@@ -23,8 +25,7 @@ MemoryMap& getMemoryInstance() {
 }
 
 extern "C" int memory_read(int addr) {
-    auto data = getMemoryInstance()[addr];
-    return data;
+    return getMemoryInstance()[addr];
 }
 
 extern "C" void memory_write(int addr, int data, int mask) {
@@ -69,25 +70,15 @@ int simulate(int argc, char** argv) {
                       << std::endl;
         }
 
-        if (top->trap) {
-            std::cerr << "trap" << std::endl;
-
-            if (top->debug_instruction == INST_ECALL) {
-                svSetScope(
-                    svGetScopeFromName("TOP.sim.core.data_path.register_file"));
-                int a0, a7;
-                read_register(10, &a0);
-                read_register(17, &a7);
-                if (a7 == 93 && a0 == 0) {
-                    std::cerr << "pass" << std::endl;
-                    return 0;
-                } else {
-                    std::cerr << "fail: " << std::dec << (a0 >> 1) << std::endl;
-                    return 1;
-                }
+        {
+            int fail_test = getMemoryInstance()[tohost_address];
+            if (fail_test == 1) {
+                std::cerr << "pass" << std::endl;
+                return 0;
+            } else if (fail_test > 1) {
+                std::cerr << "fail: " << std::dec << fail_test << std::endl;
+                return 1;
             }
-
-            return 1;
         }
 
         top->clk = !top->clk;
