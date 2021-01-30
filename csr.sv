@@ -1,15 +1,16 @@
 `include "csr.h"
 
+`define MSTATUS 12'h300
 `define MISA 12'h301
+`define MIE 12'h304
+`define MTVEC 12'h305
+`define MSCRATCH 12'h340
+`define MEPC 12'h341
+`define MCAUSE 12'h342
 `define MVENDORID 12'hf11
 `define MARCHID 12'hf12
 `define MIMPID 12'hf13
 `define MHARTID 12'hf14
-`define MSTATUS 12'h300
-`define MTVEC 12'h305
-`define MIE 12'h304
-`define MEPC 12'h341
-`define MCAUSE 12'h342
 
 module csr (
     input  logic        clk,
@@ -30,8 +31,9 @@ module csr (
     input  logic        handle_trap,
     output logic        interrupted
 );
-  logic [31:0] mepc;
   logic [31:0] mtvec;
+  logic [31:0] mscratch;
+  logic [31:0] mepc;
   logic [31:0] mcause;
   logic        mie_meie;
   logic        mie_mtie;
@@ -72,12 +74,13 @@ module csr (
         default: mcause[30:0] <= exception_cause;
       endcase
     end else if (exit_trap) begin
-      mstatus_mie <= mstatus_mpie;
+      mstatus_mie  <= mstatus_mpie;
       mstatus_mpie <= 1;
     end else if (write_enable)
       case (number)
-        `MTVEC:  mtvec <= next;
-        `MEPC:   mepc <= next;
+        `MTVEC: mtvec <= next;
+        `MSCRATCH: mscratch <= next;
+        `MEPC: mepc <= next;
         `MCAUSE: mcause <= next;
         `MIE: begin
           mie_meie <= next[11];
@@ -85,7 +88,7 @@ module csr (
           mie_msie <= next[3];
         end
         `MSTATUS: begin
-          mstatus_mie <= next[3];
+          mstatus_mie  <= next[3];
           mstatus_mpie <= next[7];
         end
         default: ;
@@ -114,14 +117,16 @@ module csr (
         current[3] = mstatus_mie;
       end
 
-      `MTVEC: current = mtvec;
-
       `MIE: begin
         current = 32'b0;
         current[11] = mie_meie;
         current[7] = mie_mtie;
         current[3] = mie_msie;
       end
+
+      `MTVEC: current = mtvec;
+
+      `MSCRATCH: current = mscratch;
 
       `MEPC: current = mepc;
 
