@@ -153,7 +153,7 @@ module controller (
         next_exception = 0;
         next_exception_cause = 0;
         if (memory_ready) begin
-          memory_enable = 1;
+          memory_enable  = 1;
           memory_command = 0;
         end
         if (memory_valid) begin
@@ -182,7 +182,7 @@ module controller (
             `JAR: immediate_type = `IMM_J;
             `BRANCH: begin
               immediate_type = `IMM_B;
-              compare_type = funct3;
+              compare_type   = funct3;
             end
             default: immediate_type = 3'bx;
           endcase
@@ -203,15 +203,12 @@ module controller (
             use_immediate_for_compare = 1;
             immediate_type = `IMM_I;
           end
-          if(funct3[2:1] == 2'b01)
-                      // compare set
-                      begin
+          if (funct3[2:1] == 2'b01) begin
+            // compare set
             execute_compare = 1;
             compare_type = funct3;
-          end
-                    else if(funct3[1:0] == 2'b01)
-                      // shift
-                      begin
+          end else if (funct3[1:0] == 2'b01) begin
+            // shift
             execute_shift = 1;
             if (funct3 == 3'b001) shift_type = `SHIFT_LEFT;
             else if (funct7 == 7'b0000000) shift_type = `SHIFT_RIGHT;
@@ -220,8 +217,8 @@ module controller (
               next_exception = 1;
               next_exception_cause = `ILLEGAL_INSTRUCTION_CODE;
             end
-          end else  // alu
-          begin
+          end else begin
+            // alu
             execute_alu = 1;
             alu_type = (opcode == `CALCR && funct7 == 7'b0100000) ? `ALU_SUB : funct3;
           end
@@ -245,7 +242,7 @@ module controller (
               end
               `CSRRWI: begin
                 execute_csr = 1;
-                csr_access_type = `CSR_CLEAR;
+                csr_access_type = `CSR_WRITE;
                 use_immediate = 1;
               end
               default: begin
@@ -286,13 +283,13 @@ module controller (
         pc_write_enable = 1;
 
         if(opcode == `LUI ||
-                  opcode == `AUIPC ||
-                  opcode == `JAR ||
-                  opcode == `JALR ||
-                  opcode == `LOAD ||
-                  opcode == `CALCI ||
-                  opcode == `CALCR)
-                 register_file_write_enable = 1;
+           opcode == `AUIPC ||
+           opcode == `JAR ||
+           opcode == `JALR ||
+           opcode == `LOAD ||
+           opcode == `CALCI ||
+           opcode == `CALCR)
+          register_file_write_enable = 1;
 
         if (opcode == `LUI) begin
           write_immediate_to_register_file = 1;
