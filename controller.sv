@@ -15,10 +15,6 @@
 `define FENCE 7'b0001111
 `define SYSTEM 7'b1110011
 
-`define CSRRW 3'b001
-`define CSRRS 3'b010
-`define CSRRWI 3'b101
-
 `define MRET 32'b0011000_00010_00000_000_00000_1110011
 `define ECALL 32'b000000000000_00000_000_00000_1110011
 
@@ -230,26 +226,19 @@ module controller (
           else if (instruction == `ECALL) begin
             next_exception = 1;
             next_exception_cause = `ECALL_CODE;
-          end else
-            case (funct3)
-              `CSRRW: begin
-                execute_csr = 1;
-                csr_access_type = `CSR_WRITE;
-              end
-              `CSRRS: begin
-                execute_csr = 1;
-                csr_access_type = `CSR_SET;
-              end
-              `CSRRWI: begin
-                execute_csr = 1;
-                csr_access_type = `CSR_WRITE;
-                use_immediate = 1;
-              end
-              default: begin
-                next_exception = 1;
-                next_exception_cause = `ILLEGAL_INSTRUCTION_CODE;
-              end
+          end else if (funct3 != 0) begin
+            execute_csr   = 1;
+            use_immediate = funct3[2];
+            case (funct3[1:0])
+              2'b01:   csr_access_type = `CSR_WRITE;
+              2'b10:   csr_access_type = `CSR_SET;
+              2'b11:   csr_access_type = `CSR_CLEAR;
+              default: ;
             endcase
+          end else begin
+            next_exception = 1;
+            next_exception_cause = `ILLEGAL_INSTRUCTION_CODE;
+          end
           next_state = state_write_back;
         end else begin
           next_exception = 1;
