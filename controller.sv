@@ -222,11 +222,19 @@ module controller (
           // currently we have no cache, act as nop.
           next_state = state_write_back;
         end else if (opcode == `SYSTEM) begin
-          if (instruction == `MRET) exit_trap = 1;
-          else if (instruction == `ECALL) begin
-            next_exception = 1;
-            next_exception_cause = `ECALL_CODE;
-          end else if (funct3 != 0) begin
+          if (funct3 == 0) begin
+            case (instruction)
+              `MRET: exit_trap = 1;
+              `ECALL: begin
+                next_exception = 1;
+                next_exception_cause = `ECALL_CODE;
+              end
+              default: begin
+                next_exception = 1;
+                next_exception_cause = `ILLEGAL_INSTRUCTION_CODE;
+              end
+            endcase
+          end else begin
             execute_csr   = 1;
             use_immediate = funct3[2];
             case (funct3[1:0])
@@ -235,9 +243,6 @@ module controller (
               2'b11:   csr_access_type = `CSR_CLEAR;
               default: ;
             endcase
-          end else begin
-            next_exception = 1;
-            next_exception_cause = `ILLEGAL_INSTRUCTION_CODE;
           end
           next_state = state_write_back;
         end else begin
