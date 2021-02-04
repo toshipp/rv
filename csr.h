@@ -4,4 +4,5 @@
 `define CSR_CLEAR 2'b11
 
 `define ILLEGAL_INSTRUCTION_CODE 2
+`define BREAKPOINT_CODE 3
 `define ECALL_CODE 11

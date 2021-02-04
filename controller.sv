@@ -17,6 +17,7 @@
 
 `define MRET 32'b0011000_00010_00000_000_00000_1110011
 `define ECALL 32'b000000000000_00000_000_00000_1110011
+`define EBREAK 32'b000000000001_00000_000_00000_1110011
 
 module controller (
     input logic clk,
@@ -222,9 +223,13 @@ module controller (
           // currently we have no cache, act as nop.
           next_state = state_write_back;
         end else if (opcode == `SYSTEM) begin
-          if (funct3 == 0) begin
+          if (funct3 == 0 || funct3 == 3'b100) begin
             case (instruction)
               `MRET: exit_trap = 1;
+              `EBREAK: begin
+                next_exception = 1;
+                next_exception_cause = `BREAKPOINT_CODE;
+              end
               `ECALL: begin
                 next_exception = 1;
                 next_exception_cause = `ECALL_CODE;
