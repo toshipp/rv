@@ -13,37 +13,42 @@ module alu_test ();
     ;
     // add
     type_ = 3'b000;
-    in1 = 10;
-    in2 = 40;
+    in1   = 10;
+    in2   = 40;
     #1;
-    assert(out === 50) else $fatal;
+    assert (out === 50)
+    else $fatal;
 
     // sub
     type_ = 3'b001;
-    in1 = 30;
-    in2 = 10;
+    in1   = 30;
+    in2   = 10;
     #1;
-    assert(out === 20) else $fatal;
+    assert (out === 20)
+    else $fatal;
 
     // xor
     type_ = 3'b100;
-    in1 = 'b1111;
-    in2 = 'b1010;
+    in1   = 'b1111;
+    in2   = 'b1010;
     #1;
-    assert(out === 'b0101) else $fatal;
+    assert (out === 'b0101)
+    else $fatal;
 
     // or
     type_ = 3'b110;
-    in1 = 'b0101;
-    in2 = 'b1010;
+    in1   = 'b0101;
+    in2   = 'b1010;
     #1;
-    assert(out === 'b1111) else $fatal;
+    assert (out === 'b1111)
+    else $fatal;
 
     // and
     type_ = 3'b111;
-    in1 = 'b1011;
-    in2 = 'b0101;
+    in1   = 'b1011;
+    in2   = 'b0101;
     #1;
-    assert(out === 'b0001) else $fatal;
+    assert (out === 'b0001)
+    else $fatal;
   end
 endmodule

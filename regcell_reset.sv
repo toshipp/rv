@@ -8,8 +8,6 @@ module regcell_reset #(
     output logic [31:0] out
 );
   always_ff @(posedge clk)
-     if(reset)
-       out <= RESET_VALUE;
-     else if(write_enable)
-       out <= in;
+    if (reset) out <= RESET_VALUE;
+    else if (write_enable) out <= in;
 endmodule

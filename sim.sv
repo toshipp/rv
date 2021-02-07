@@ -82,10 +82,8 @@ module memory (
 
   always_ff @(posedge clk)
     if (memory_enable) begin
-      if(memory_command)
-            memory_write(wa, write_memory_data, write_memory_mask);
-          else
-            read_memory_data <= memory_read(ra);
+      if (memory_command) memory_write(wa, write_memory_data, write_memory_mask);
+      else read_memory_data <= memory_read(ra);
 
       memory_valid <= 1;
     end else memory_valid <= 0;
