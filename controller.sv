@@ -207,13 +207,15 @@ module controller (
           end else if (funct3[1:0] == 2'b01) begin
             // shift
             execute_shift = 1;
-            if (funct3 == 3'b001) shift_type = `SHIFT_LEFT;
-            else if (funct7 == 7'b0000000) shift_type = `SHIFT_RIGHT;
-            else if (funct7 == 7'b0100000) shift_type = `SHIFT_ARITH;
-            else begin
-              next_exception = 1;
-              next_exception_cause = `ILLEGAL_INSTRUCTION_CODE;
-            end
+            case (1'b1)
+              funct3[2] == 1'b0 && funct7 == 7'b0000000: shift_type = `SHIFT_LEFT;
+              funct3[2] == 1'b1 && funct7 == 7'b0000000: shift_type = `SHIFT_RIGHT;
+              funct3[2] == 1'b1 && funct7 == 7'b0100000: shift_type = `SHIFT_ARITH;
+              default: begin
+                next_exception = 1;
+                next_exception_cause = `ILLEGAL_INSTRUCTION_CODE;
+              end
+            endcase
           end else begin
             // alu
             execute_alu = 1;
