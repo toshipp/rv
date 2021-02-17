@@ -76,7 +76,8 @@ int simulate(int argc, char** argv) {
                 std::cerr << "pass" << std::endl;
                 return 0;
             } else if (fail_test > 1) {
-                std::cerr << "fail: " << std::dec << fail_test << std::endl;
+                std::cerr << "fail: " << std::dec << (fail_test >> 1)
+                          << std::endl;
                 return 1;
             }
         }
