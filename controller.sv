@@ -2,6 +2,7 @@
 `include "shifter.h"
 `include "alu.h"
 `include "csr.h"
+`include "controller.h"
 
 `define LUI 7'b0110111
 `define AUIPC 7'b0010111
@@ -29,6 +30,8 @@ module controller (
     input logic memory_valid,
 
     input logic interrupted,
+
+    input logic misaligned_exception,
 
     output logic execute_result_write_enable,
     output logic load_memory_data_write_enable,
@@ -65,6 +68,7 @@ module controller (
     output logic [11:0] csr_number,
     output logic        handle_trap,
     output logic        exit_trap,
+    output logic        trap_value_type,
 
     output logic [ 2:0] debug_state,
     output logic        exception,
@@ -88,16 +92,19 @@ module controller (
 
   logic next_exception;
   logic [30:0] next_exception_cause;
+  logic next_trap_value_type;
 
   always_ff @(posedge clk)
     if (reset) begin
       current_state <= state_fetch;
       exception <= 0;
       exception_cause <= 0;
+      trap_value_type <= 0;
     end else begin
       current_state <= next_state;
       exception <= next_exception;
       exception_cause <= next_exception_cause;
+      trap_value_type <= next_trap_value_type;
     end
 
   assign opcode = instruction[6:0];
@@ -133,7 +140,7 @@ module controller (
     alu_type = 3'bx;
     compare_type = 3'bx;
     shift_type = 2'bx;
-    load_memory_decoder_type = 3'bx;
+    load_memory_decoder_type = funct3;
     store_memory_encoder_type = 2'bx;
     csr_access_type = 2'b00;
 
@@ -143,12 +150,14 @@ module controller (
 
     next_exception = exception;
     next_exception_cause = exception_cause;
+    next_trap_value_type = trap_value_type;
 
     case (current_state)
       state_fetch: begin
         next_state = state_fetch;
         next_exception = 0;
         next_exception_cause = 0;
+        next_trap_value_type = `ZERO_TRAP_VALUE;
         if (memory_ready) begin
           memory_enable  = 1;
           memory_command = 0;
@@ -270,10 +279,14 @@ module controller (
           memory_command = 1;
           store_memory_encoder_type = funct3[1:0];
         end
-        if (memory_valid) begin
+        if (misaligned_exception) begin
+          next_state = state_trap;
+          next_exception = 1;
+          next_exception_cause = `LOAD_ADDRESS_MISALIGNED_CODE;
+          next_trap_value_type = `READ_MEMORY_ADDRESS_TRAP_VALUE;
+        end else if (memory_valid) begin
           next_state = state_write_back;
           if (opcode == `LOAD) begin
-            load_memory_decoder_type = funct3;
             load_memory_data_write_enable = 1;
           end
         end
@@ -313,6 +326,8 @@ module controller (
         next_state = state_fetch;
         pc_write_enable = 1;
         handle_trap = 1;
+        // for trap value
+        use_execute_result_for_read_memory = 1;
       end
 
       default: next_state = 3'bx;  // dont care

@@ -1,7 +1,11 @@
 TESTS := $(wildcard *_test.sv)
 TEST_TARGETS := $(patsubst %.sv,%,$(TESTS))
 
-test: $(TEST_TARGETS) sim synth
+.PHONY: test
+test: unit sim synth
+
+.PHONY: unit
+unit: $(TEST_TARGETS)
 
 %: %.vvp
 	vvp $<
@@ -24,12 +28,12 @@ store_memory_encoder_test.vvp: store_memory_encoder_test.sv store_memory_encoder
 sim: sim.cc $(wildcard *.sv)
 	verilator --cc -sv --exe --Mdir generated -o sim sim.sv sim.cc
 	make -C generated -f Vsim.mk
-	mv generated/sim sim
+	cp generated/sim sim
 
+.PHONY: synth
 synth: synth.ys $(wildcard *.sv)
 	yosys -s synth.ys
 
+.PHONY: clean
 clean:
 	rm -rf *__gen.v *.vvp sim generated
-
-.PHONY: test clean

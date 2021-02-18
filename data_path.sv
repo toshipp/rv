@@ -52,6 +52,8 @@ module data_path #(
     output logic [31:0] csr_in,
     input  logic [31:0] csr_out,
 
+    output logic misaligned_exception,
+
     output logic [31:0] debug_in1,
     output logic [31:0] debug_in2,
     output logic [31:0] debug_result
@@ -158,7 +160,8 @@ module data_path #(
       load_memory_decoder_type,
       execute_result[1:0],
       read_memory_data,
-      load_memory_decoder_out
+      load_memory_decoder_out,
+      misaligned_exception
   );
 
   regcell reg_load_memory_data (

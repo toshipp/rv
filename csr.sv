@@ -7,6 +7,7 @@
 `define MSCRATCH 12'h340
 `define MEPC 12'h341
 `define MCAUSE 12'h342
+`define MTVAL 12'h343
 `define MVENDORID 12'hf11
 `define MARCHID 12'hf12
 `define MIMPID 12'hf13
@@ -24,6 +25,7 @@ module csr (
     input  logic        software_interrupt,
     input  logic        exception,
     input  logic [30:0] exception_cause,
+    input  logic [31:0] trap_value,
     input  logic        exit_trap,
     input  logic [31:0] current_pc,
     output logic [31:0] trap_pc,
@@ -35,6 +37,8 @@ module csr (
   logic [31:0] mscratch;
   logic [31:0] mepc;
   logic [31:0] mcause;
+  logic [31:0] mtval;
+
   logic        mie_meie;
   logic        mie_mtie;
   logic        mie_msie;
@@ -67,6 +71,7 @@ module csr (
       mstatus_mpie <= mstatus_mie;
       mstatus_mie <= 0;
       mcause[31] <= exception ? 0 : 1;
+      mtval <= trap_value;
       case (1'b1)
         mstatus_mie && external_interrupt && mie_meie: mcause[30:0] <= 11;
         mstatus_mie && software_interrupt && mie_msie: mcause[30:0] <= 3;
@@ -131,6 +136,8 @@ module csr (
       `MEPC: current = mepc;
 
       `MCAUSE: current = mcause;
+
+      `MTVAL: current = mtval;
 
       default: current = 32'b0;
     endcase

@@ -2,12 +2,14 @@ module load_memory_decoder_test ();
   logic [2:0] type_;
   logic [1:0] offset;
   logic [31:0] in, out;
+  logic exception;
 
   load_memory_decoder dut (
       type_,
       offset,
       in,
-      out
+      out,
+      exception
   );
 
   initial begin
@@ -16,28 +18,28 @@ module load_memory_decoder_test ();
     offset = 0;
     in = 32'hxxxxxxbf;
     #1;
-    assert (out === 32'hffffffbf)
+    assert (exception === 0 && out === 32'hffffffbf)
     else $fatal;
 
     type_ = 3'b000;
     offset = 1;
     in = 32'hxxxxbfxx;
     #1;
-    assert (out === 32'hffffffbf)
+    assert (exception === 0 && out === 32'hffffffbf)
     else $fatal;
 
     type_ = 3'b000;
     offset = 2;
     in = 32'hxxbfxxxx;
     #1;
-    assert (out === 32'hffffffbf)
+    assert (exception === 0 && out === 32'hffffffbf)
     else $fatal;
 
     type_ = 3'b000;
     offset = 3;
     in = 32'hbfxxxxxx;
     #1;
-    assert (out === 32'hffffffbf)
+    assert (exception === 0 && out === 32'hffffffbf)
     else $fatal;
 
     // LH
@@ -45,14 +47,28 @@ module load_memory_decoder_test ();
     offset = 0;
     in = 32'hxxxxbfff;
     #1;
-    assert (out === 32'hffffbfff)
+    assert (exception === 0 && out === 32'hffffbfff)
+    else $fatal;
+
+    type_ = 3'b001;
+    offset = 1;
+    in = 32'hxxbfffxx;
+    #1;
+    assert (exception === 0 && out === 32'hffffbfff)
     else $fatal;
 
     type_ = 3'b001;
     offset = 2;
     in = 32'hbfffxxxx;
     #1;
-    assert (out === 32'hffffbfff)
+    assert (exception === 0 && out === 32'hffffbfff)
+    else $fatal;
+
+    type_ = 3'b001;
+    offset = 3;
+    in = 32'hx;
+    #1;
+    assert (exception === 1)
     else $fatal;
 
     // LW
@@ -60,7 +76,14 @@ module load_memory_decoder_test ();
     offset = 0;
     in = 32'hffffffff;
     #1;
-    assert (out === 32'hffffffff)
+    assert (exception === 0 && out === 32'hffffffff)
+    else $fatal;
+
+    type_ = 3'b010;
+    offset = 1;
+    in = 32'hx;
+    #1;
+    assert (exception === 1)
     else $fatal;
 
     // LBU
@@ -68,28 +91,28 @@ module load_memory_decoder_test ();
     offset = 0;
     in = 32'hxxxxxxff;
     #1;
-    assert (out === 32'h000000ff)
+    assert (exception === 0 && out === 32'h000000ff)
     else $fatal;
 
     type_ = 3'b100;
     offset = 1;
     in = 32'hxxxxffxx;
     #1;
-    assert (out === 32'h000000ff)
+    assert (exception === 0 && out === 32'h000000ff)
     else $fatal;
 
     type_ = 3'b100;
     offset = 2;
     in = 32'hxxffxxxx;
     #1;
-    assert (out === 32'h000000ff)
+    assert (exception === 0 && out === 32'h000000ff)
     else $fatal;
 
     type_ = 3'b100;
     offset = 3;
     in = 32'hffxxxxxx;
     #1;
-    assert (out === 32'h000000ff)
+    assert (exception === 0 && out === 32'h000000ff)
     else $fatal;
 
     // LHU
@@ -97,14 +120,21 @@ module load_memory_decoder_test ();
     offset = 0;
     in = 32'hxxxxffff;
     #1;
-    assert (out === 32'h0000ffff)
+    assert (exception === 0 && out === 32'h0000ffff)
+    else $fatal;
+
+    type_ = 3'b101;
+    offset = 1;
+    in = 32'hxxffffxx;
+    #1;
+    assert (exception === 0 && out === 32'h0000ffff)
     else $fatal;
 
     type_ = 3'b101;
     offset = 2;
     in = 32'hffffxxxx;
     #1;
-    assert (out === 32'h0000ffff)
+    assert (exception === 0 && out === 32'h0000ffff)
     else $fatal;
   end
 endmodule
