@@ -89,6 +89,8 @@ module data_path #(
 
   logic [31:0] load_memory_data;
 
+  logic        store_misaligned_exception;
+
   regcell_reset #(START_ADDRESS) reg_pc (
       clk,
       reset,
@@ -176,7 +178,8 @@ module data_path #(
       execute_result[1:0],
       register_file_read_data2,
       write_memory_data,
-      write_memory_mask
+      write_memory_mask,
+      store_misaligned_exception
   );
 
   assign debug_result = execute_result_in;
