@@ -5,7 +5,8 @@ module data_path #(
     input logic reset,
 
     // for ram
-    input  logic [31:0] read_memory_data,
+    input logic memory_command,
+    input logic [31:0] read_memory_data,
     output logic [31:0] read_memory_address,
     output logic [31:0] write_memory_data,
     output logic [31:0] write_memory_address,
@@ -54,6 +55,8 @@ module data_path #(
 
     output logic misaligned_exception,
 
+    output logic [31:0] trap_value,
+
     output logic [31:0] debug_in1,
     output logic [31:0] debug_in2,
     output logic [31:0] debug_result
@@ -89,6 +92,7 @@ module data_path #(
 
   logic [31:0] load_memory_data;
 
+  logic        load_misaligned_exception;
   logic        store_misaligned_exception;
 
   regcell_reset #(START_ADDRESS) reg_pc (
@@ -163,7 +167,7 @@ module data_path #(
       execute_result[1:0],
       read_memory_data,
       load_memory_decoder_out,
-      misaligned_exception
+      load_misaligned_exception
   );
 
   regcell reg_load_memory_data (
@@ -226,8 +230,10 @@ module data_path #(
     endcase
 
   assign read_memory_address = use_execute_result_for_read_memory ? execute_result : current_pc;
-
   assign write_memory_address = execute_result;
 
   assign csr_in = use_immediate ? {27'b0, instruction[19:15]} : register_file_read_data1;
+
+  assign misaligned_exception = (!memory_command && load_misaligned_exception) || (memory_command && store_misaligned_exception);
+  assign trap_value = misaligned_exception ? (memory_command ? write_memory_address : read_memory_address) : 0;
 endmodule

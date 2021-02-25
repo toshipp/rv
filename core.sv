@@ -1,5 +1,3 @@
-`include "controller.h"
-
 module core #(
     parameter START_ADDRESS = 0
 ) (
@@ -13,7 +11,7 @@ module core #(
     output logic [31:0] write_memory_data,
     output logic [31:0] write_memory_address,
     output logic [31:0] write_memory_mask,
-    output logic        memory_command,
+    output logic        memory_command_out,
     output logic        memory_enable,
 
     input logic external_interrupt,
@@ -33,6 +31,8 @@ module core #(
   logic        interrupted;
 
   logic        misaligned_exception;
+
+  logic        memory_command;
 
   logic        execute_result_write_enable;
   logic        load_memory_data_write_enable;
@@ -67,7 +67,6 @@ module core #(
   logic [11:0] csr_number;
   logic        handle_trap;
   logic        exit_trap;
-  logic        trap_value_type;
 
   logic [31:0] current_pc;
   logic [31:0] csr_trap_pc;
@@ -126,7 +125,6 @@ module core #(
       csr_number,
       handle_trap,
       exit_trap,
-      trap_value_type,
 
       debug_state,
       exception,
@@ -136,6 +134,7 @@ module core #(
   data_path #(START_ADDRESS) data_path (
       clk,
       reset,
+      memory_command,
       read_memory_data,
       read_memory_address,
       write_memory_data,
@@ -183,6 +182,8 @@ module core #(
 
       misaligned_exception,
 
+      trap_value,
+
       debug_in1,
       debug_in2,
       debug_result
@@ -209,11 +210,7 @@ module core #(
       interrupted
   );
 
-  always_comb
-    case (trap_value_type)
-      `READ_MEMORY_ADDRESS_TRAP_VALUE: trap_value = read_memory_address;
-      default: trap_value = 0;
-    endcase
+  assign memory_command_out = memory_command;
 
   assign debug_instruction = instruction;
   assign debug_pc = current_pc;
