@@ -33,9 +33,10 @@ module csr (
     input  logic        handle_trap,
     output logic        interrupted
 );
-  logic [31:0] mtvec;
+  // only direct mode is supported.
+  logic [29:0] mtvec;
   logic [31:0] mscratch;
-  logic [31:0] mepc;
+  logic [29:0] mepc;
   logic [31:0] mcause;
   logic [31:0] mtval;
 
@@ -67,7 +68,7 @@ module csr (
       mstatus_mie <= 0;
       mstatus_mpie <= 0;
     end else if (handle_trap) begin
-      mepc <= current_pc;
+      mepc <= current_pc[31:2];
       mstatus_mpie <= mstatus_mie;
       mstatus_mie <= 0;
       mcause[31] <= exception ? 0 : 1;
@@ -83,9 +84,9 @@ module csr (
       mstatus_mpie <= 1;
     end else if (write_enable)
       case (number)
-        `MTVEC: mtvec <= next;
+        `MTVEC: mtvec <= next[31:2];
         `MSCRATCH: mscratch <= next;
-        `MEPC: mepc <= next;
+        `MEPC: mepc <= next[31:2];
         `MCAUSE: mcause <= next;
         `MIE: begin
           mie_meie <= next[11];
@@ -101,8 +102,8 @@ module csr (
 
   assign out = current;
 
-  assign trap_pc = mtvec;
-  assign ret_pc = mepc;
+  assign trap_pc = {mtvec, 2'b0};
+  assign ret_pc = {mepc, 2'b0};
 
   always_comb
     case (number)
@@ -129,11 +130,11 @@ module csr (
         current[3] = mie_msie;
       end
 
-      `MTVEC: current = mtvec;
+      `MTVEC: current = {mtvec, 2'b0};
 
       `MSCRATCH: current = mscratch;
 
-      `MEPC: current = mepc;
+      `MEPC: current = {mepc, 2'b0};
 
       `MCAUSE: current = mcause;
 
