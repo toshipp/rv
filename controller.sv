@@ -3,21 +3,26 @@
 `include "alu.h"
 `include "csr.h"
 
-`define LUI 7'b0110111
-`define AUIPC 7'b0010111
-`define JAR 7'b1101111
-`define JALR 7'b1100111
-`define BRANCH 7'b1100011
-`define LOAD 7'b0000011
-`define STORE 7'b0100011
-`define CALCI 7'b0010011
-`define CALCR 7'b0110011
-`define FENCE 7'b0001111
-`define SYSTEM 7'b1110011
+typedef enum logic [6:0] {
+  LUI    = 7'b0110111,
+  AUIPC  = 7'b0010111,
+  JAR    = 7'b1101111,
+  JALR   = 7'b1100111,
+  BRANCH = 7'b1100011,
+  LOAD   = 7'b0000011,
+  STORE  = 7'b0100011,
+  CALCI  = 7'b0010011,
+  CALCR  = 7'b0110011,
+  FENCE  = 7'b0001111,
+  SYSTEM = 7'b1110011
+} opcode_type;
 
-`define MRET 32'b0011000_00010_00000_000_00000_1110011
-`define ECALL 32'b000000000000_00000_000_00000_1110011
-`define EBREAK 32'b000000000001_00000_000_00000_1110011
+typedef enum logic [31:0] {
+  MRET   = 32'b0011000_00010_00000_000_00000_1110011,
+  ECALL  = 32'b000000000000_00000_000_00000_1110011,
+  EBREAK = 32'b000000000001_00000_000_00000_1110011
+
+} system_instruction_type;
 
 module controller (
     input logic clk,
@@ -74,7 +79,7 @@ module controller (
     output logic [30:0] exception_cause
 );
 
-  logic [6:0] opcode;
+  opcode_type opcode;
   logic [2:0] funct3;
   logic [6:0] funct7;
 
@@ -172,34 +177,34 @@ module controller (
       state_execute: begin
         next_state = state_write_back;
         execute_result_write_enable = 1;
-        if (opcode == `LUI);  // do nothing
-        else if (opcode == `AUIPC || opcode == `JAR || opcode == `BRANCH) begin
+        if (opcode == LUI);  // do nothing
+        else if (opcode == AUIPC || opcode == JAR || opcode == BRANCH) begin
           execute_alu = 1;
           alu_type = `ALU_ADD;
           use_pc_for_alu = 1;
           use_immediate = 1;
           case (opcode)
-            `AUIPC: immediate_type = `IMM_U;
-            `JAR: immediate_type = `IMM_J;
-            `BRANCH: begin
+            AUIPC: immediate_type = `IMM_U;
+            JAR: immediate_type = `IMM_J;
+            BRANCH: begin
               immediate_type = `IMM_B;
               compare_type   = funct3;
             end
             default: immediate_type = 3'bx;
           endcase
-        end else if (opcode == `JALR) begin
+        end else if (opcode == JALR) begin
           execute_alu = 1;
           alu_type = `ALU_ADD;
           use_immediate = 1;
           immediate_type = `IMM_I;
-        end else if (opcode == `LOAD || opcode == `STORE) begin
+        end else if (opcode == LOAD || opcode == STORE) begin
           execute_alu = 1;
           alu_type = `ALU_ADD;
           use_immediate = 1;
-          immediate_type = (opcode == `LOAD) ? `IMM_I : `IMM_S;
+          immediate_type = (opcode == LOAD) ? `IMM_I : `IMM_S;
           next_state = state_memory;
-        end else if (opcode == `CALCI || opcode == `CALCR) begin
-          if (opcode == `CALCI) begin
+        end else if (opcode == CALCI || opcode == CALCR) begin
+          if (opcode == CALCI) begin
             use_immediate = 1;
             use_immediate_for_compare = 1;
             immediate_type = `IMM_I;
@@ -223,20 +228,20 @@ module controller (
           end else begin
             // alu
             execute_alu = 1;
-            alu_type = (opcode == `CALCR && funct7 == 7'b0100000) ? `ALU_SUB : funct3;
+            alu_type = (opcode == CALCR && funct7 == 7'b0100000) ? `ALU_SUB : funct3;
           end
-        end else if (opcode == `FENCE) begin
+        end else if (opcode == FENCE) begin
           // currently we have no cache, act as nop.
           next_state = state_write_back;
-        end else if (opcode == `SYSTEM) begin
+        end else if (opcode == SYSTEM) begin
           if (funct3 == 0 || funct3 == 3'b100) begin
             case (instruction)
-              `MRET: exit_trap = 1;
-              `EBREAK: begin
+              MRET: exit_trap = 1;
+              EBREAK: begin
                 next_exception = 1;
                 next_exception_cause = `BREAKPOINT_CODE;
               end
-              `ECALL: begin
+              ECALL: begin
                 next_exception = 1;
                 next_exception_cause = `ECALL_CODE;
               end
@@ -266,7 +271,7 @@ module controller (
 
       state_memory: begin
         next_state = state_memory;
-        if (opcode == `LOAD) begin
+        if (opcode == LOAD) begin
           use_execute_result_for_read_memory = 1;
           memory_command = 0;
         end else begin
@@ -275,12 +280,12 @@ module controller (
         if (misaligned_exception) begin
           next_state = state_trap;
           next_exception = 1;
-          next_exception_cause = (opcode == `LOAD) ? `LOAD_ADDRESS_MISALIGNED_CODE : `STORE_ADDRESS_MISALIGNED_CODE;
+          next_exception_cause = (opcode == LOAD) ? `LOAD_ADDRESS_MISALIGNED_CODE : `STORE_ADDRESS_MISALIGNED_CODE;
         end else begin
           if (memory_ready) memory_enable = 1;
           if (memory_valid) begin
             next_state = state_write_back;
-            if (opcode == `LOAD) begin
+            if (opcode == LOAD) begin
               load_memory_data_write_enable = 1;
             end
           end
@@ -289,21 +294,21 @@ module controller (
 
       state_write_back: begin
         case (opcode)
-          `LUI: begin
+          LUI: begin
             write_immediate_to_register_file = 1;
             immediate_type = `IMM_U;
           end
-          `JAR, `JALR: begin
+          JAR, JALR: begin
             write_pc_inc_to_register_file = 1;
             write_execute_result_to_pc = 1;
           end
-          `BRANCH: write_execute_result_to_pc_if_compare_met = 1;
-          `LOAD:   write_load_memory_to_register_file = 1;
-          `SYSTEM: if (instruction == `MRET) write_execute_result_to_pc = 1;
+          BRANCH: write_execute_result_to_pc_if_compare_met = 1;
+          LOAD: write_load_memory_to_register_file = 1;
+          SYSTEM: if (instruction == MRET) write_execute_result_to_pc = 1;
           default: ;
         endcase
 
-        if ((opcode == `JAR || opcode == `JALR || opcode == `BRANCH) && next_pc[1:0] != 0) begin
+        if ((opcode == JAR || opcode == JALR || opcode == BRANCH) && next_pc[1:0] != 0) begin
           next_state = state_trap;
           next_exception = 1;
           next_exception_cause = `INSTRUCTION_ADDRESS_MISALIGNED_CODE;
@@ -312,8 +317,8 @@ module controller (
           pc_write_enable = 1;
 
           case (opcode)
-            `LUI, `AUIPC, `JAR, `JALR, `LOAD, `CALCI, `CALCR: register_file_write_enable = 1;
-            `SYSTEM: begin
+            LUI, AUIPC, JAR, JALR, LOAD, CALCI, CALCR: register_file_write_enable = 1;
+            SYSTEM: begin
               // csr
               if (funct3 != 3'b000 && funct3 != 3'b100) register_file_write_enable = 1;
             end
