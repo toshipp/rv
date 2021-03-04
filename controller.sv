@@ -1,7 +1,7 @@
 `include "immediate_decoder.h"
 `include "shifter.h"
 `include "alu.h"
-`include "csr.h"
+`include "csr_pkg.sv"
 
 typedef enum logic [6:0] {
   LUI    = 7'b0110111,
@@ -70,7 +70,7 @@ module controller (
     output logic [1:0] store_memory_encoder_type,
     output logic [1:0] csr_access_type,
 
-    output logic [11:0] csr_number,
+    output logic [11:0] csr_id,
     output logic        handle_trap,
     output logic        exit_trap,
 
@@ -144,9 +144,9 @@ module controller (
     load_memory_decoder_type = funct3;
     store_memory_encoder_type = funct3[1:0];
 
-    csr_access_type = 2'b00;
+    csr_access_type = csr_pkg::CSR_READ_ONLY;
 
-    csr_number = instruction[31:20];
+    csr_id = instruction[31:20];
     handle_trap = 0;
     exit_trap = 0;
 
@@ -230,7 +230,7 @@ module controller (
                   8'b10100000: shift_type = `SHIFT_ARITH;
                   default: begin
                     next_exception = 1;
-                    next_exception_cause = `ILLEGAL_INSTRUCTION_CODE;
+                    next_exception_cause = csr_pkg::ILLEGAL_INSTRUCTION_CODE;
                   end
                 endcase
               end
@@ -252,15 +252,15 @@ module controller (
                   MRET: exit_trap = 1;
                   EBREAK: begin
                     next_exception = 1;
-                    next_exception_cause = `BREAKPOINT_CODE;
+                    next_exception_cause = csr_pkg::BREAKPOINT_CODE;
                   end
                   ECALL: begin
                     next_exception = 1;
-                    next_exception_cause = `ECALL_CODE;
+                    next_exception_cause = csr_pkg::ECALL_CODE;
                   end
                   default: begin
                     next_exception = 1;
-                    next_exception_cause = `ILLEGAL_INSTRUCTION_CODE;
+                    next_exception_cause = csr_pkg::ILLEGAL_INSTRUCTION_CODE;
                   end
                 endcase
               end
@@ -268,9 +268,9 @@ module controller (
                 execute_csr   = 1;
                 use_immediate = funct3[2];
                 case (funct3[1:0])
-                  2'b01:   csr_access_type = `CSR_WRITE;
-                  2'b10:   csr_access_type = `CSR_SET;
-                  2'b11:   csr_access_type = `CSR_CLEAR;
+                  2'b01:   csr_access_type = csr_pkg::CSR_WRITE;
+                  2'b10:   csr_access_type = csr_pkg::CSR_SET;
+                  2'b11:   csr_access_type = csr_pkg::CSR_CLEAR;
                   default: ;
                 endcase
               end
@@ -279,7 +279,7 @@ module controller (
           end
           default: begin
             next_exception = 1;
-            next_exception_cause = `ILLEGAL_INSTRUCTION_CODE;
+            next_exception_cause = csr_pkg::ILLEGAL_INSTRUCTION_CODE;
           end
         endcase
 
@@ -297,7 +297,7 @@ module controller (
         if (misaligned_exception) begin
           next_state = state_trap;
           next_exception = 1;
-          next_exception_cause = (opcode == LOAD) ? `LOAD_ADDRESS_MISALIGNED_CODE : `STORE_ADDRESS_MISALIGNED_CODE;
+          next_exception_cause = (opcode == LOAD) ? csr_pkg::LOAD_ADDRESS_MISALIGNED_CODE : csr_pkg::STORE_ADDRESS_MISALIGNED_CODE;
         end else begin
           if (memory_ready) memory_enable = 1;
           if (memory_valid) begin
@@ -328,7 +328,7 @@ module controller (
         if ((opcode == JAR || opcode == JALR || opcode == BRANCH) && next_pc[1:0] != 0) begin
           next_state = state_trap;
           next_exception = 1;
-          next_exception_cause = `INSTRUCTION_ADDRESS_MISALIGNED_CODE;
+          next_exception_cause = csr_pkg::INSTRUCTION_ADDRESS_MISALIGNED_CODE;
         end else begin
           next_state = state_fetch;
           pc_write_enable = 1;
