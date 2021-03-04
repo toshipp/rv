@@ -177,94 +177,111 @@ module controller (
       state_execute: begin
         next_state = state_write_back;
         execute_result_write_enable = 1;
-        if (opcode == LUI);  // do nothing
-        else if (opcode == AUIPC || opcode == JAR || opcode == BRANCH) begin
-          execute_alu = 1;
-          alu_type = `ALU_ADD;
-          use_pc_for_alu = 1;
-          use_immediate = 1;
-          case (opcode)
-            AUIPC: immediate_type = `IMM_U;
-            JAR: immediate_type = `IMM_J;
-            BRANCH: begin
-              immediate_type = `IMM_B;
-              compare_type   = funct3;
-            end
-            default: immediate_type = 3'bx;
-          endcase
-        end else if (opcode == JALR) begin
-          execute_alu = 1;
-          alu_type = `ALU_ADD;
-          use_immediate = 1;
-          immediate_type = `IMM_I;
-        end else if (opcode == LOAD || opcode == STORE) begin
-          execute_alu = 1;
-          alu_type = `ALU_ADD;
-          use_immediate = 1;
-          immediate_type = (opcode == LOAD) ? `IMM_I : `IMM_S;
-          next_state = state_memory;
-        end else if (opcode == CALCI || opcode == CALCR) begin
-          if (opcode == CALCI) begin
+        case (opcode)
+          LUI:  /* do nothing */;
+          AUIPC, JAR, BRANCH: begin
+            execute_alu = 1;
+            alu_type = `ALU_ADD;
+            use_pc_for_alu = 1;
             use_immediate = 1;
-            use_immediate_for_compare = 1;
+            case (opcode)
+              AUIPC: immediate_type = `IMM_U;
+              JAR: immediate_type = `IMM_J;
+              BRANCH: begin
+                immediate_type = `IMM_B;
+                compare_type   = funct3;
+              end
+              default: immediate_type = 3'bx;
+            endcase
+          end
+          JALR: begin
+            execute_alu = 1;
+            alu_type = `ALU_ADD;
+            use_immediate = 1;
             immediate_type = `IMM_I;
           end
-          if (funct3[2:1] == 2'b01) begin
-            // compare set
-            execute_compare = 1;
-            compare_type = funct3;
-          end else if (funct3[1:0] == 2'b01) begin
-            // shift
-            execute_shift = 1;
-            case (1'b1)
-              funct3[2] == 1'b0 && funct7 == 7'b0000000: shift_type = `SHIFT_LEFT;
-              funct3[2] == 1'b1 && funct7 == 7'b0000000: shift_type = `SHIFT_RIGHT;
-              funct3[2] == 1'b1 && funct7 == 7'b0100000: shift_type = `SHIFT_ARITH;
-              default: begin
-                next_exception = 1;
-                next_exception_cause = `ILLEGAL_INSTRUCTION_CODE;
-              end
-            endcase
-          end else begin
-            // alu
+          LOAD, STORE: begin
             execute_alu = 1;
-            alu_type = (opcode == CALCR && funct7 == 7'b0100000) ? `ALU_SUB : funct3;
+            alu_type = `ALU_ADD;
+            use_immediate = 1;
+            immediate_type = (opcode == LOAD) ? `IMM_I : `IMM_S;
+            next_state = state_memory;
           end
-        end else if (opcode == FENCE) begin
-          // currently we have no cache, act as nop.
-          next_state = state_write_back;
-        end else if (opcode == SYSTEM) begin
-          if (funct3 == 0 || funct3 == 3'b100) begin
-            case (instruction)
-              MRET: exit_trap = 1;
-              EBREAK: begin
-                next_exception = 1;
-                next_exception_cause = `BREAKPOINT_CODE;
+          CALCI, CALCR: begin
+            if (opcode == CALCI) begin
+              use_immediate = 1;
+              use_immediate_for_compare = 1;
+              immediate_type = `IMM_I;
+            end
+            casez (funct3)
+              3'b01?: begin
+                // compare set
+                execute_compare = 1;
+                compare_type = funct3;
               end
-              ECALL: begin
-                next_exception = 1;
-                next_exception_cause = `ECALL_CODE;
+              3'b?01: begin
+                // shift
+                execute_shift = 1;
+                case ({
+                  funct3[2], funct7
+                })
+                  8'b00000000: shift_type = `SHIFT_LEFT;
+                  8'b10000000: shift_type = `SHIFT_RIGHT;
+                  8'b10100000: shift_type = `SHIFT_ARITH;
+                  default: begin
+                    next_exception = 1;
+                    next_exception_cause = `ILLEGAL_INSTRUCTION_CODE;
+                  end
+                endcase
               end
               default: begin
-                next_exception = 1;
-                next_exception_cause = `ILLEGAL_INSTRUCTION_CODE;
+                // alu
+                execute_alu = 1;
+                alu_type = (opcode == CALCR && funct7 == 7'b0100000) ? `ALU_SUB : funct3;
               end
             endcase
-          end else begin
-            execute_csr   = 1;
-            use_immediate = funct3[2];
-            case (funct3[1:0])
-              2'b01:   csr_access_type = `CSR_WRITE;
-              2'b10:   csr_access_type = `CSR_SET;
-              2'b11:   csr_access_type = `CSR_CLEAR;
-              default: ;
-            endcase
           end
-          next_state = state_write_back;
-        end else begin
-          next_exception = 1;
-          next_exception_cause = `ILLEGAL_INSTRUCTION_CODE;
-        end
+          FENCE: begin
+            // currently we have no cache, act as nop.
+            next_state = state_write_back;
+          end
+          SYSTEM: begin
+            case (funct3)
+              3'b000, 3'b100: begin
+                case (instruction)
+                  MRET: exit_trap = 1;
+                  EBREAK: begin
+                    next_exception = 1;
+                    next_exception_cause = `BREAKPOINT_CODE;
+                  end
+                  ECALL: begin
+                    next_exception = 1;
+                    next_exception_cause = `ECALL_CODE;
+                  end
+                  default: begin
+                    next_exception = 1;
+                    next_exception_cause = `ILLEGAL_INSTRUCTION_CODE;
+                  end
+                endcase
+              end
+              default: begin
+                execute_csr   = 1;
+                use_immediate = funct3[2];
+                case (funct3[1:0])
+                  2'b01:   csr_access_type = `CSR_WRITE;
+                  2'b10:   csr_access_type = `CSR_SET;
+                  2'b11:   csr_access_type = `CSR_CLEAR;
+                  default: ;
+                endcase
+              end
+            endcase
+            next_state = state_write_back;
+          end
+          default: begin
+            next_exception = 1;
+            next_exception_cause = `ILLEGAL_INSTRUCTION_CODE;
+          end
+        endcase
 
         if (next_exception) next_state = state_trap;
       end
