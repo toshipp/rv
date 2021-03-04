@@ -23,6 +23,7 @@ module controller (
     input logic clk,
     input logic reset,
 
+    input logic [31:0] next_pc,
     input logic [31:0] instruction,
 
     input logic memory_ready,
@@ -287,32 +288,37 @@ module controller (
       end
 
       state_write_back: begin
-        next_state = state_fetch;
-        pc_write_enable = 1;
+        case (opcode)
+          `LUI: begin
+            write_immediate_to_register_file = 1;
+            immediate_type = `IMM_U;
+          end
+          `JAR, `JALR: begin
+            write_pc_inc_to_register_file = 1;
+            write_execute_result_to_pc = 1;
+          end
+          `BRANCH: write_execute_result_to_pc_if_compare_met = 1;
+          `LOAD:   write_load_memory_to_register_file = 1;
+          `SYSTEM: if (instruction == `MRET) write_execute_result_to_pc = 1;
+          default: ;
+        endcase
 
-        if(opcode == `LUI ||
-           opcode == `AUIPC ||
-           opcode == `JAR ||
-           opcode == `JALR ||
-           opcode == `LOAD ||
-           opcode == `CALCI ||
-           opcode == `CALCR)
-          register_file_write_enable = 1;
+        if ((opcode == `JAR || opcode == `JALR || opcode == `BRANCH) && next_pc[1:0] != 0) begin
+          next_state = state_trap;
+          next_exception = 1;
+          next_exception_cause = `INSTRUCTION_ADDRESS_MISALIGNED_CODE;
+        end else begin
+          next_state = state_fetch;
+          pc_write_enable = 1;
 
-        if (opcode == `LUI) begin
-          write_immediate_to_register_file = 1;
-          immediate_type = `IMM_U;
-        end else if (opcode == `JAR || opcode == `JALR) begin
-          write_pc_inc_to_register_file = 1;
-          write_execute_result_to_pc = 1;
-        end else if (opcode == `BRANCH) begin
-          write_execute_result_to_pc_if_compare_met = 1;
-        end else if (opcode == `LOAD) begin
-          write_load_memory_to_register_file = 1;
-        end else if (opcode == `SYSTEM) begin
-          if (instruction == `MRET) write_execute_result_to_pc = 1;
-          // csr
-          if (funct3 != 3'b000 && funct3 != 3'b100) register_file_write_enable = 1;
+          case (opcode)
+            `LUI, `AUIPC, `JAR, `JALR, `LOAD, `CALCI, `CALCR: register_file_write_enable = 1;
+            `SYSTEM: begin
+              // csr
+              if (funct3 != 3'b000 && funct3 != 3'b100) register_file_write_enable = 1;
+            end
+            default: ;
+          endcase
         end
       end
 

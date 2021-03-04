@@ -47,6 +47,7 @@ module data_path #(
     output logic [31:0] instruction,
 
     output logic [31:0] current_pc,
+    output logic [31:0] next_pc,
     input  logic [31:0] csr_trap_pc,
     input  logic [31:0] csr_ret_pc,
 
@@ -64,7 +65,6 @@ module data_path #(
 
   logic        use_execute_result_to_pc;
 
-  logic [31:0] next_pc;
   logic [31:0] pc_inc;
 
   logic [31:0] register_file_write_data;

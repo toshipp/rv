@@ -69,6 +69,7 @@ module core #(
   logic        exit_trap;
 
   logic [31:0] current_pc;
+  logic [31:0] next_pc;
   logic [31:0] csr_trap_pc;
   logic [31:0] csr_ret_pc;
   logic        exception;
@@ -81,6 +82,8 @@ module core #(
   controller controller (
       clk,
       reset,
+
+      next_pc,
       instruction,
 
       memory_ready,
@@ -174,6 +177,7 @@ module core #(
       instruction,
 
       current_pc,
+      next_pc,
       csr_trap_pc,
       csr_ret_pc,
 
