@@ -13,7 +13,7 @@ typedef enum logic [11:0] {
   MARCHID   = 12'hf12,
   MIMPID    = 12'hf13,
   MHARTID   = 12'hf14
-} csr_id_type;
+} csr_id_t;
 
 module csr (
     input  logic        clk,

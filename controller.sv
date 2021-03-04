@@ -15,14 +15,14 @@ typedef enum logic [6:0] {
   CALCR  = 7'b0110011,
   FENCE  = 7'b0001111,
   SYSTEM = 7'b1110011
-} opcode_type;
+} opcode_t;
 
 typedef enum logic [31:0] {
   MRET   = 32'b0011000_00010_00000_000_00000_1110011,
   ECALL  = 32'b000000000000_00000_000_00000_1110011,
   EBREAK = 32'b000000000001_00000_000_00000_1110011
 
-} system_instruction_type;
+} system_instruction_t;
 
 module controller (
     input logic clk,
@@ -79,7 +79,7 @@ module controller (
     output logic [30:0] exception_cause
 );
 
-  opcode_type opcode;
+  opcode_t opcode;
   logic [2:0] funct3;
   logic [6:0] funct7;
 
