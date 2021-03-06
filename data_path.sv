@@ -192,9 +192,8 @@ module data_path #(
 
   assign pc_inc = current_pc + 4;
 
-  assign use_execute_result_to_pc = (write_execute_result_to_pc
-                                      || (write_execute_result_to_pc_if_compare_met
-                                          && compare_result));
+  assign use_execute_result_to_pc = (
+      write_execute_result_to_pc || (write_execute_result_to_pc_if_compare_met && compare_result));
 
   always_comb
     case (1'b1)
@@ -234,6 +233,8 @@ module data_path #(
 
   assign csr_in = use_immediate ? {27'b0, instruction[19:15]} : register_file_read_data1;
 
-  assign misaligned_exception = (!memory_command && load_misaligned_exception) || (memory_command && store_misaligned_exception);
-  assign trap_value = misaligned_exception ? (memory_command ? write_memory_address : read_memory_address) : 0;
+  assign misaligned_exception = (!memory_command && load_misaligned_exception) || (
+      memory_command && store_misaligned_exception);
+  assign trap_value =
+      misaligned_exception ? (memory_command ? write_memory_address : read_memory_address) : 0;
 endmodule

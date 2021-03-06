@@ -297,7 +297,8 @@ module controller (
         if (misaligned_exception) begin
           next_state = state_trap;
           next_exception = 1;
-          next_exception_cause = (opcode == LOAD) ? csr_pkg::LOAD_ADDRESS_MISALIGNED_CODE : csr_pkg::STORE_ADDRESS_MISALIGNED_CODE;
+          next_exception_cause = (opcode == LOAD) ? csr_pkg::LOAD_ADDRESS_MISALIGNED_CODE :
+              csr_pkg::STORE_ADDRESS_MISALIGNED_CODE;
         end else begin
           if (memory_ready) memory_enable = 1;
           if (memory_valid) begin

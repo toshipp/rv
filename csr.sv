@@ -54,10 +54,8 @@ module csr (
 
   assign write_enable = access_type != csr_pkg::CSR_READ_ONLY;
 
-  assign interrupted = (mstatus_mie
-                        && (external_interrupt && mie_meie
-                            || timer_interrupt && mie_mtie
-                            || software_interrupt && mie_msie));
+  assign interrupted = (mstatus_mie && (external_interrupt && mie_meie || timer_interrupt &&
+                                        mie_mtie || software_interrupt && mie_msie));
 
   always_ff @(posedge clk)
     if (reset) begin
