@@ -1,4 +1,4 @@
-`include "shifter.h"
+`include "shifter_pkg.sv"
 
 module shifter #(
     parameter N = 32
@@ -10,9 +10,9 @@ module shifter #(
 );
   always_comb
     case (type_)
-      `SHIFT_LEFT: out = in << shift;
-      `SHIFT_RIGHT: out = in >> shift;
-      `SHIFT_ARITH: out = $signed(in) >>> shift;
+      shifter_pkg::SHIFT_LEFT: out = in << shift;
+      shifter_pkg::SHIFT_RIGHT: out = in >> shift;
+      shifter_pkg::SHIFT_ARITH: out = $signed(in) >>> shift;
       default: out = 'bx;
     endcase
 endmodule

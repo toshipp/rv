@@ -1,5 +1,5 @@
 `include "immediate_decoder_pkg.sv"
-`include "shifter.h"
+`include "shifter_pkg.sv"
 `include "alu_pkg.sv"
 `include "csr_pkg.sv"
 
@@ -226,9 +226,9 @@ module controller (
                 case ({
                   funct3[2], funct7
                 })
-                  8'b00000000: shift_type = `SHIFT_LEFT;
-                  8'b10000000: shift_type = `SHIFT_RIGHT;
-                  8'b10100000: shift_type = `SHIFT_ARITH;
+                  8'b00000000: shift_type = shifter_pkg::SHIFT_LEFT;
+                  8'b10000000: shift_type = shifter_pkg::SHIFT_RIGHT;
+                  8'b10100000: shift_type = shifter_pkg::SHIFT_ARITH;
                   default: begin
                     next_exception = 1;
                     next_exception_cause = csr_pkg::ILLEGAL_INSTRUCTION_CODE;
