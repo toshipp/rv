@@ -1,4 +1,4 @@
-`include "immediate_decoder.h"
+`include "immediate_decoder_pkg.sv"
 `include "shifter.h"
 `include "alu_pkg.sv"
 `include "csr_pkg.sv"
@@ -185,10 +185,10 @@ module controller (
             use_pc_for_alu = 1;
             use_immediate = 1;
             case (opcode)
-              AUIPC: immediate_type = `IMM_U;
-              JAR: immediate_type = `IMM_J;
+              AUIPC: immediate_type = immediate_decoder_pkg::IMM_U;
+              JAR: immediate_type = immediate_decoder_pkg::IMM_J;
               BRANCH: begin
-                immediate_type = `IMM_B;
+                immediate_type = immediate_decoder_pkg::IMM_B;
                 compare_type   = funct3;
               end
               default: immediate_type = 3'bx;
@@ -198,20 +198,21 @@ module controller (
             execute_alu = 1;
             alu_type = alu_pkg::ALU_ADD;
             use_immediate = 1;
-            immediate_type = `IMM_I;
+            immediate_type = immediate_decoder_pkg::IMM_I;
           end
           LOAD, STORE: begin
             execute_alu = 1;
             alu_type = alu_pkg::ALU_ADD;
             use_immediate = 1;
-            immediate_type = (opcode == LOAD) ? `IMM_I : `IMM_S;
+            immediate_type = (opcode == LOAD) ? immediate_decoder_pkg::IMM_I :
+                immediate_decoder_pkg::IMM_S;
             next_state = state_memory;
           end
           CALCI, CALCR: begin
             if (opcode == CALCI) begin
               use_immediate = 1;
               use_immediate_for_compare = 1;
-              immediate_type = `IMM_I;
+              immediate_type = immediate_decoder_pkg::IMM_I;
             end
             casez (funct3)
               3'b01?: begin
@@ -314,7 +315,7 @@ module controller (
         case (opcode)
           LUI: begin
             write_immediate_to_register_file = 1;
-            immediate_type = `IMM_U;
+            immediate_type = immediate_decoder_pkg::IMM_U;
           end
           JAR, JALR: begin
             write_pc_inc_to_register_file = 1;
