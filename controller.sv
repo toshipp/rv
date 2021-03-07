@@ -1,6 +1,6 @@
 `include "immediate_decoder.h"
 `include "shifter.h"
-`include "alu.h"
+`include "alu_pkg.sv"
 `include "csr_pkg.sv"
 
 typedef enum logic [6:0] {
@@ -181,7 +181,7 @@ module controller (
           LUI:  /* do nothing */;
           AUIPC, JAR, BRANCH: begin
             execute_alu = 1;
-            alu_type = `ALU_ADD;
+            alu_type = alu_pkg::ALU_ADD;
             use_pc_for_alu = 1;
             use_immediate = 1;
             case (opcode)
@@ -196,13 +196,13 @@ module controller (
           end
           JALR: begin
             execute_alu = 1;
-            alu_type = `ALU_ADD;
+            alu_type = alu_pkg::ALU_ADD;
             use_immediate = 1;
             immediate_type = `IMM_I;
           end
           LOAD, STORE: begin
             execute_alu = 1;
-            alu_type = `ALU_ADD;
+            alu_type = alu_pkg::ALU_ADD;
             use_immediate = 1;
             immediate_type = (opcode == LOAD) ? `IMM_I : `IMM_S;
             next_state = state_memory;
@@ -237,7 +237,7 @@ module controller (
               default: begin
                 // alu
                 execute_alu = 1;
-                alu_type = (opcode == CALCR && funct7 == 7'b0100000) ? `ALU_SUB : funct3;
+                alu_type = (opcode == CALCR && funct7 == 7'b0100000) ? alu_pkg::ALU_SUB : funct3;
               end
             endcase
           end

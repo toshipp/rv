@@ -1,4 +1,4 @@
-`include "alu.h"
+`include "alu_pkg.sv"
 
 module alu #(
     parameter N = 32
@@ -10,11 +10,11 @@ module alu #(
 );
   always_comb
     case (type_)
-      `ALU_ADD: out = in1 + in2;
-      `ALU_SUB: out = in1 - in2;
-      `ALU_XOR: out = in1 ^ in2;
-      `ALU_OR:  out = in1 | in2;
-      `ALU_AND: out = in1 & in2;
-      default:  out = 'bx;
+      alu_pkg::ALU_ADD: out = in1 + in2;
+      alu_pkg::ALU_SUB: out = in1 - in2;
+      alu_pkg::ALU_XOR: out = in1 ^ in2;
+      alu_pkg::ALU_OR:  out = in1 | in2;
+      alu_pkg::ALU_AND: out = in1 & in2;
+      default:          out = 'bx;
     endcase
 endmodule
