@@ -1,4 +1,4 @@
-`include "store_memory_encoder.h"
+`include "store_memory_encoder_pkg.sv"
 
 module store_memory_encoder (
     input logic [1:0] type_,
@@ -14,7 +14,7 @@ module store_memory_encoder (
     mask = 'bx;
 
     case (type_)
-      `STORE_B:
+      store_memory_encoder_pkg::STORE_B:
       case (offset)
         0: begin
           out  = {24'bx, in[7:0]};
@@ -34,7 +34,7 @@ module store_memory_encoder (
         end
       endcase
 
-      `STORE_H:
+      store_memory_encoder_pkg::STORE_H:
       case (offset)
         0: begin
           out  = {16'bx, in[15:0]};
@@ -51,7 +51,7 @@ module store_memory_encoder (
         default: misaligned_exception = 1;
       endcase
 
-      `STORE_W:
+      store_memory_encoder_pkg::STORE_W:
       case (offset)
         0: begin
           out  = in;

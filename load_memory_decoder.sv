@@ -1,4 +1,4 @@
-`include "load_memory_decoder.h"
+`include "load_memory_decoder_pkg.sv"
 
 module load_memory_decoder (
     input logic [2:0] type_,
@@ -13,7 +13,7 @@ module load_memory_decoder (
     out = 'bx;
 
     case (type_)
-      `LOAD_B:
+      load_memory_decoder_pkg::LOAD_B:
       case (offset)
         0: out = {{24{in[7]}}, in[7:0]};
         1: out = {{24{in[15]}}, in[15:8]};
@@ -21,7 +21,7 @@ module load_memory_decoder (
         3: out = {{24{in[31]}}, in[31:24]};
       endcase
 
-      `LOAD_H:
+      load_memory_decoder_pkg::LOAD_H:
       case (offset)
         0: out = {{16{in[15]}}, in[15:0]};
         1: out = {{16{in[23]}}, in[23:8]};
@@ -29,13 +29,13 @@ module load_memory_decoder (
         default: misaligned_exception = 1;
       endcase
 
-      `LOAD_W:
+      load_memory_decoder_pkg::LOAD_W:
       case (offset)
         0: out = in;
         default: misaligned_exception = 1;
       endcase
 
-      `LOAD_BU:
+      load_memory_decoder_pkg::LOAD_BU:
       case (offset)
         0: out = {24'b0, in[7:0]};
         1: out = {24'b0, in[15:8]};
@@ -43,7 +43,7 @@ module load_memory_decoder (
         3: out = {24'b0, in[31:24]};
       endcase
 
-      `LOAD_HU:
+      load_memory_decoder_pkg::LOAD_HU:
       case (offset)
         0: out = {16'b0, in[15:0]};
         1: out = {16'b0, in[23:8]};
