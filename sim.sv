@@ -1,3 +1,5 @@
+`include "controller_pkg.sv"
+
 module sim (
     input logic clk,
     input logic reset,
@@ -82,7 +84,8 @@ module memory (
 
   always_ff @(posedge clk)
     if (memory_enable) begin
-      if (memory_command) memory_write(wa, write_memory_data, write_memory_mask);
+      if (memory_command == controller_pkg::WRITE)
+        memory_write(wa, write_memory_data, write_memory_mask);
       else read_memory_data <= memory_read(ra);
 
       memory_valid <= 1;

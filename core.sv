@@ -76,6 +76,7 @@ module core #(
   logic                      [31:0] csr_ret_pc;
   logic                             exception;
   logic                      [30:0] exception_cause;
+  logic                             trap_value_type;
   logic                      [31:0] trap_value;
 
   logic                      [31:0] csr_in;
@@ -130,6 +131,7 @@ module core #(
       csr_id,
       handle_trap,
       exit_trap,
+      trap_value_type,
 
       debug_state,
       exception,
@@ -188,6 +190,7 @@ module core #(
 
       misaligned_exception,
 
+      trap_value_type,
       trap_value,
 
       debug_in1,

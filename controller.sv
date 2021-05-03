@@ -2,6 +2,7 @@
 `include "shifter_pkg.sv"
 `include "alu_pkg.sv"
 `include "csr_pkg.sv"
+`include "controller_pkg.sv"
 
 typedef enum logic [6:0] {
   LUI    = 7'b0110111,
@@ -73,6 +74,7 @@ module controller (
     output logic [11:0] csr_id,
     output logic        handle_trap,
     output logic        exit_trap,
+    output logic        trap_value_type,
 
     output logic [ 2:0] debug_state,
     output logic        exception,
@@ -96,16 +98,19 @@ module controller (
 
   logic next_exception;
   logic [30:0] next_exception_cause;
+  logic next_trap_value_type;
 
   always_ff @(posedge clk)
     if (reset) begin
       current_state <= state_fetch;
       exception <= 0;
       exception_cause <= 0;
+      trap_value_type <= controller_pkg::ZERO;
     end else begin
       current_state <= next_state;
       exception <= next_exception;
       exception_cause <= next_exception_cause;
+      trap_value_type <= next_trap_value_type;
     end
 
   assign opcode = instruction[6:0];
@@ -152,15 +157,17 @@ module controller (
 
     next_exception = exception;
     next_exception_cause = exception_cause;
+    next_trap_value_type = trap_value_type;
 
     case (current_state)
       state_fetch: begin
         next_state = state_fetch;
         next_exception = 0;
         next_exception_cause = 0;
+        next_trap_value_type = controller_pkg::ZERO;
         if (memory_ready) begin
           memory_enable  = 1;
-          memory_command = 0;
+          memory_command = controller_pkg::READ;
         end
         if (memory_valid) begin
           next_state = state_decode;
@@ -291,15 +298,16 @@ module controller (
         next_state = state_memory;
         if (opcode == LOAD) begin
           use_execute_result_for_read_memory = 1;
-          memory_command = 0;
+          memory_command = controller_pkg::READ;
         end else begin
-          memory_command = 1;
+          memory_command = controller_pkg::WRITE;
         end
         if (misaligned_exception) begin
           next_state = state_trap;
           next_exception = 1;
           next_exception_cause = (opcode == LOAD) ? csr_pkg::LOAD_ADDRESS_MISALIGNED_CODE :
               csr_pkg::STORE_ADDRESS_MISALIGNED_CODE;
+          next_trap_value_type = controller_pkg::EXECUTE_RESULT;
         end else begin
           if (memory_ready) memory_enable = 1;
           if (memory_valid) begin
@@ -350,8 +358,6 @@ module controller (
         next_state = state_fetch;
         pc_write_enable = 1;
         handle_trap = 1;
-        // for trap value
-        use_execute_result_for_read_memory = 1;
       end
 
       default: next_state = 3'bx;  // dont care

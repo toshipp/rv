@@ -1,3 +1,5 @@
+`include "controller_pkg.sv"
+
 module data_path #(
     parameter START_ADDRESS = 0
 ) (
@@ -56,6 +58,7 @@ module data_path #(
 
     output logic misaligned_exception,
 
+    input logic trap_value_type,
     output logic [31:0] trap_value,
 
     output logic [31:0] debug_in1,
@@ -233,8 +236,14 @@ module data_path #(
 
   assign csr_in = use_immediate ? {27'b0, instruction[19:15]} : register_file_read_data1;
 
-  assign misaligned_exception = (!memory_command && load_misaligned_exception) || (
-      memory_command && store_misaligned_exception);
-  assign trap_value =
-      misaligned_exception ? (memory_command ? write_memory_address : read_memory_address) : 0;
+  assign misaligned_exception = (memory_command == controller_pkg::READ && load_misaligned_exception
+      ) || (memory_command == controller_pkg::WRITE && store_misaligned_exception);
+
+  always_comb
+    case (trap_value_type)
+      controller_pkg::ZERO: trap_value = 0;
+      controller_pkg::EXECUTE_RESULT: trap_value = execute_result;
+      default: trap_value = 'bx;
+    endcase
+
 endmodule
