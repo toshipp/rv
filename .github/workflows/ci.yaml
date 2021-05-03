@@ -1,0 +1,12 @@
+name: ci
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container:
+      image: docker.pkg.github.com/toshipp/rv/builder
+      env:
+        OBJCOPY: riscv64-elf-objcopy
+        RISCV_PREFIX: riscv64-elf-
+    steps:
+      - run: make test
