@@ -12,4 +12,5 @@ jobs:
         OBJCOPY: riscv64-elf-objcopy
         RISCV_PREFIX: riscv64-elf-
     steps:
+      - uses: actions/checkout@v2
       - run: make test
