@@ -42,6 +42,10 @@ sim-test: test-assets/.done sim ./scripts/sim-test.sh
 synth: synth.ys $(wildcard *.sv)
 	yosys -s synth.ys
 
+.PHONY: build-image
+build-image:
+	BUILDAH_LAYERS=true buildah bud -t builder --squash .
+
 .PHONY: clean
 clean:
-	rm -rf *__gen.v *.vvp sim generated test-assets
+	rm -rf *__gen.v *.vvp sim generated test-assets log
