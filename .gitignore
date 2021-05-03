@@ -1,5 +1,7 @@
 *.vcd
 *.vvp
-*.v
+*__gen.v
 sim
 generated/
+log/
+test-assets/

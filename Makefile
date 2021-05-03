@@ -1,11 +1,11 @@
-TESTS := $(wildcard *_test.sv)
-TEST_TARGETS := $(patsubst %.sv,%,$(TESTS))
+UNIT_TESTS := $(wildcard *_test.sv)
+UNIT_TEST_TARGETS := $(patsubst %.sv,%,$(UNIT_TESTS))
 
 .PHONY: test
-test: unit sim synth
+test: unit sim-test synth
 
 .PHONY: unit
-unit: $(TEST_TARGETS)
+unit: $(UNIT_TEST_TARGETS)
 
 %: %.vvp
 	vvp $<
@@ -30,10 +30,18 @@ sim: sim.cc $(wildcard *.sv)
 	make -C generated -f Vsim.mk
 	cp generated/sim sim
 
+test-assets/.done: scripts/test-assets.sh
+	./scripts/test-assets.sh
+	touch $@
+
+.PHONY: sim-test
+sim-test: test-assets/.done sim ./scripts/sim-test.sh
+	./scripts/sim-test.sh
+
 .PHONY: synth
 synth: synth.ys $(wildcard *.sv)
 	yosys -s synth.ys
 
 .PHONY: clean
 clean:
-	rm -rf *__gen.v *.vvp sim generated
+	rm -rf *__gen.v *.vvp sim generated test-assets
