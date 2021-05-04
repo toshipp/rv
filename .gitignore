@@ -5,3 +5,5 @@ sim
 generated/
 log/
 test-assets/
+*.bin
+*.exe

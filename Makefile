@@ -1,8 +1,11 @@
+RISCV_GCC ?= riscv64-elf-gcc
+RISCV_OBJCOPY ?= riscv64-elf-objcopy
+
 UNIT_TESTS := $(wildcard *_test.sv)
 UNIT_TEST_TARGETS := $(patsubst %.sv,%,$(UNIT_TESTS))
 
 .PHONY: test
-test: unit sim-test synth
+test: unit sim-test synth interrupt-test
 
 .PHONY: unit
 unit: $(UNIT_TEST_TARGETS)
@@ -30,6 +33,17 @@ sim: sim.cc $(wildcard *.sv)
 	make -C generated -f Vsim.mk
 	cp generated/sim sim
 
+interrupt_test.exe: interrupt_test.S link.ld
+	$(RISCV_GCC) -march=rv32g -mabi=ilp32 -nostdlib -T link.ld $< -o $@
+
+interrupt_test.bin: interrupt_test.exe
+	$(RISCV_OBJCOPY) -O binary $< $@
+
+.PHONY: interrupt-test
+interrupt-test: interrupt_test.bin sim
+	mkdir -p log
+	./sim --interrupt-on-after=20 --timeout=1000 $< 2>log/$@.log
+
 test-assets/.done: scripts/test-assets.sh
 	./scripts/test-assets.sh
 	touch $@
@@ -48,4 +62,4 @@ build-image:
 
 .PHONY: clean
 clean:
-	rm -rf *__gen.v *.vvp sim generated test-assets log
+	rm -rf *__gen.v *.vvp sim generated test-assets log interrupt_test.exe interrupt_test.bin
