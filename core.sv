@@ -46,6 +46,7 @@ module core #(
   logic                             write_immediate_to_register_file;
   logic                             write_pc_inc_to_register_file;
   logic                             write_execute_result_to_pc;
+  logic                             clear_pc_lsb;
   logic                             write_execute_result_to_pc_if_compare_met;
   logic                             write_load_memory_to_register_file;
 
@@ -111,6 +112,7 @@ module core #(
       write_immediate_to_register_file,
       write_pc_inc_to_register_file,
       write_execute_result_to_pc,
+      clear_pc_lsb,
       write_execute_result_to_pc_if_compare_met,
       write_load_memory_to_register_file,
 
@@ -161,6 +163,7 @@ module core #(
       write_immediate_to_register_file,
       write_load_memory_to_register_file,
       write_execute_result_to_pc,
+      clear_pc_lsb,
       write_execute_result_to_pc_if_compare_met,
       write_pc_inc_to_register_file,
 

@@ -53,6 +53,7 @@ module controller (
     output logic write_immediate_to_register_file,
     output logic write_pc_inc_to_register_file,
     output logic write_execute_result_to_pc,
+    output logic clear_pc_lsb,
     output logic write_execute_result_to_pc_if_compare_met,
     output logic write_load_memory_to_register_file,
 
@@ -133,6 +134,7 @@ module controller (
     write_immediate_to_register_file = 0;
     write_pc_inc_to_register_file = 0;
     write_execute_result_to_pc = 0;
+    clear_pc_lsb = 0;
     write_execute_result_to_pc_if_compare_met = 0;
     write_load_memory_to_register_file = 0;
 
@@ -333,6 +335,7 @@ module controller (
           JAR, JALR: begin
             write_pc_inc_to_register_file = 1;
             write_execute_result_to_pc = 1;
+            clear_pc_lsb = opcode == JALR;
           end
           BRANCH: write_execute_result_to_pc_if_compare_met = 1;
           LOAD: write_load_memory_to_register_file = 1;
