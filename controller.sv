@@ -117,7 +117,7 @@ module controller (
       trap_value_type <= next_trap_value_type;
     end
 
-  assign opcode = opcode_t'(instruction[6:0]);
+  assign opcode = instruction[6:0];
   assign funct3 = instruction[14:12];
   assign funct7 = instruction[31:25];
 
@@ -368,7 +368,7 @@ module controller (
         handle_trap = 1;
       end
 
-      default: next_state = state'(3'bx);  // dont care
+      default: next_state = 3'bx;  // dont care
     endcase
   end
 
