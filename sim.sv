@@ -1,5 +1,3 @@
-`include "controller_pkg.sv"
-
 module sim (
     input logic clk,
     input logic reset,
@@ -16,28 +14,24 @@ module sim (
     output logic [31:0] debug_result
 );
 
-  logic        memory_ready;
-  logic        memory_valid;
-  logic [31:0] read_memory_data;
-  logic [31:0] read_memory_address;
-  logic [31:0] write_memory_data;
-  logic [31:0] write_memory_address;
-  logic [31:0] write_memory_mask;
-  logic        memory_enable;
-  logic        memory_command;
+  logic        ack;
+  logic [31:0] data_m2c;
+  logic [31:0] data_c2m;
+  logic [31:0] adr;
+  logic [ 3:0] sel;
+  logic        we;
+  logic        stb;
 
   core #(32'h80000000) core (
       clk,
       reset,
-      memory_ready,
-      memory_valid,
-      read_memory_data,
-      read_memory_address,
-      write_memory_data,
-      write_memory_address,
-      write_memory_mask,
-      memory_command,
-      memory_enable,
+      ack,
+      data_m2c,
+      adr,
+      data_c2m,
+      sel,
+      we,
+      stb,
       external_interrupt,
       timer_interrupt,
       software_interrupt,
@@ -51,48 +45,42 @@ module sim (
 
   memory memory (
       clk,
-      memory_ready,
-      memory_valid,
-      read_memory_data,
-      read_memory_address,
-      write_memory_data,
-      write_memory_address,
-      write_memory_mask,
-      memory_command,
-      memory_enable
+      ack,
+      data_m2c,
+      data_c2m,
+      adr,
+      sel,
+      we,
+      stb
   );
 endmodule
 
 module memory (
-    input  logic        clk,
-    output logic        memory_ready,
-    output logic        memory_valid,
-    output logic [31:0] read_memory_data,
-    input  logic [31:0] read_memory_address,
-    input  logic [31:0] write_memory_data,
-    input  logic [31:0] write_memory_address,
-    input  logic [31:0] write_memory_mask,
-    input  logic        memory_command,
-    input  logic        memory_enable
+    input  logic        clk_i,
+    output logic        ack_o,
+    output logic [31:0] data_o,
+    input  logic [31:0] data_i,
+    input  logic [31:0] adr_i,
+    input  logic [ 3:0] sel_i,
+    input  logic        we_i,
+    input  logic        stb_i
 );
 
-  logic [31:0] ra;
-  logic [31:0] wa;
+  logic [31:0] adr;
+  logic [31:0] mask;
 
   import "DPI-C" function void memory_write(input int addr, input int data, input int mask);
   import "DPI-C" function int memory_read(input int addr);
 
-  always_ff @(posedge clk)
-    if (memory_enable) begin
-      if (memory_command == controller_pkg::WRITE)
-        memory_write(wa, write_memory_data, write_memory_mask);
-      else read_memory_data <= memory_read(ra);
+  always_ff @(posedge clk_i) begin
+    if (stb_i)
+      if (we_i) memory_write(adr, data_i, mask);
+      else data_o <= memory_read(adr);
 
-      memory_valid <= 1;
-    end else memory_valid <= 0;
+    ack_o <= stb_i;
+  end
 
-  assign ra = {read_memory_address[31:2], 2'b0};
-  assign wa = {write_memory_address[31:2], 2'b0};
+  assign adr  = {adr_i[31:2], 2'b0};
+  assign mask = {{8{sel_i[3]}}, {8{sel_i[2]}}, {8{sel_i[1]}}, {8{sel_i[0]}}};
 
-  assign memory_ready = 1;
 endmodule

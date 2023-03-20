@@ -1,6 +1,6 @@
 #!/bin/sh
 
-OBJCOPY=${OBJCOPY:-riscv64-unknown-elf-objcopy}
+OBJCOPY=${OBJCOPY:-riscv64-elf-objcopy}
 MAKE_OPT=
 if [ -n "$RISCV_PREFIX" ]; then
     MAKE_OPT=RISCV_PREFIX_VAR=RISCV_PREFIX=$RISCV_PREFIX

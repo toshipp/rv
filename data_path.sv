@@ -12,7 +12,7 @@ module data_path #(
     output logic [31:0] read_memory_address,
     output logic [31:0] write_memory_data,
     output logic [31:0] write_memory_address,
-    output logic [31:0] write_memory_mask,
+    output logic [3:0] sel_o,
 
     // for control
     input logic execute_result_write_enable,
@@ -185,7 +185,7 @@ module data_path #(
       execute_result[1:0],
       register_file_read_data2,
       write_memory_data,
-      write_memory_mask,
+      sel_o,
       store_misaligned_exception
   );
 
