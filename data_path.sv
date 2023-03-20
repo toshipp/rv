@@ -12,7 +12,7 @@ module data_path #(
     output logic [31:0] read_memory_address,
     output logic [31:0] write_memory_data,
     output logic [31:0] write_memory_address,
-    output logic [31:0] write_memory_mask,
+    output logic [3:0] sel_o,
 
     // for control
     input logic execute_result_write_enable,
@@ -24,6 +24,7 @@ module data_path #(
     input logic write_immediate_to_register_file,
     input logic write_load_memory_to_register_file,
     input logic write_execute_result_to_pc,
+    input logic clear_pc_lsb,
     input logic write_execute_result_to_pc_if_compare_met,
     input logic write_pc_inc_to_register_file,
 
@@ -185,7 +186,7 @@ module data_path #(
       execute_result[1:0],
       register_file_read_data2,
       write_memory_data,
-      write_memory_mask,
+      sel_o,
       store_misaligned_exception
   );
 
@@ -200,7 +201,7 @@ module data_path #(
 
   always_comb
     case (1'b1)
-      use_execute_result_to_pc: next_pc = execute_result;
+      use_execute_result_to_pc: next_pc = {execute_result[31:1], execute_result[0] & ~clear_pc_lsb};
       handle_trap: next_pc = csr_trap_pc;
       default: next_pc = pc_inc;
     endcase

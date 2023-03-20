@@ -1,20 +1,19 @@
 `include "csr_pkg.sv"
+`include "controller_pkg.sv"
 
 module core #(
     parameter START_ADDRESS = 0
 ) (
-    input logic clk,
-    input logic reset,
+    input logic clk_i,
+    input logic rst_i,
 
-    input  logic        memory_ready,
-    input  logic        memory_valid,
-    input  logic [31:0] read_memory_data,
-    output logic [31:0] read_memory_address,
-    output logic [31:0] write_memory_data,
-    output logic [31:0] write_memory_address,
-    output logic [31:0] write_memory_mask,
-    output logic        memory_command_out,
-    output logic        memory_enable,
+    input  logic        ack_i,
+    input  logic [31:0] data_i,
+    output logic [31:0] adr_o,
+    output logic [31:0] data_o,
+    output logic [ 3:0] sel_o,
+    output logic        we_o,
+    output logic        stb_o,
 
     input logic external_interrupt,
     input logic timer_interrupt,
@@ -35,6 +34,8 @@ module core #(
   logic                             misaligned_exception;
 
   logic                             memory_command;
+  logic                      [31:0] read_memory_address;
+  logic                      [31:0] write_memory_address;
 
   logic                             execute_result_write_enable;
   logic                             load_memory_data_write_enable;
@@ -45,6 +46,7 @@ module core #(
   logic                             write_immediate_to_register_file;
   logic                             write_pc_inc_to_register_file;
   logic                             write_execute_result_to_pc;
+  logic                             clear_pc_lsb;
   logic                             write_execute_result_to_pc_if_compare_met;
   logic                             write_load_memory_to_register_file;
 
@@ -83,14 +85,16 @@ module core #(
   logic                      [31:0] csr_out;
 
   controller controller (
-      clk,
-      reset,
+      clk_i,
+      rst_i,
 
       next_pc,
       instruction,
 
-      memory_ready,
-      memory_valid,
+      read_memory_address,
+      write_memory_address,
+
+      ack_i,
 
       interrupted,
 
@@ -102,11 +106,13 @@ module core #(
       instruction_write_enable,
       register_file_write_enable,
       memory_command,
-      memory_enable,
+      adr_o,
+      stb_o,
 
       write_immediate_to_register_file,
       write_pc_inc_to_register_file,
       write_execute_result_to_pc,
+      clear_pc_lsb,
       write_execute_result_to_pc_if_compare_met,
       write_load_memory_to_register_file,
 
@@ -139,14 +145,14 @@ module core #(
   );
 
   data_path #(START_ADDRESS) data_path (
-      clk,
-      reset,
+      clk_i,
+      rst_i,
       memory_command,
-      read_memory_data,
+      data_i,
       read_memory_address,
-      write_memory_data,
+      data_o,
       write_memory_address,
-      write_memory_mask,
+      sel_o,
 
       execute_result_write_enable,
       load_memory_data_write_enable,
@@ -157,6 +163,7 @@ module core #(
       write_immediate_to_register_file,
       write_load_memory_to_register_file,
       write_execute_result_to_pc,
+      clear_pc_lsb,
       write_execute_result_to_pc_if_compare_met,
       write_pc_inc_to_register_file,
 
@@ -199,8 +206,8 @@ module core #(
   );
 
   csr csr (
-      clk,
-      reset,
+      clk_i,
+      rst_i,
       csr_id,
       csr_access_type,
       csr_in,
@@ -219,7 +226,7 @@ module core #(
       interrupted
   );
 
-  assign memory_command_out = memory_command;
+  assign we_o = memory_command == controller_pkg::WRITE;
 
   assign debug_instruction = instruction;
   assign debug_pc = current_pc;

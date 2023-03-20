@@ -29,7 +29,7 @@ store_memory_encoder_test.vvp: store_memory_encoder_test.sv store_memory_encoder
 	iverilog -g2005-sv -o $@ $^
 
 sim: sim.cc $(wildcard *.sv)
-	verilator --cc -sv --exe --Mdir generated -o sim sim.sv sim.cc
+	verilator -Wno-ENUMVALUE --cc -sv --exe --Mdir generated -o sim sim.sv sim.cc
 	make -C generated -f Vsim.mk
 	cp generated/sim sim
 

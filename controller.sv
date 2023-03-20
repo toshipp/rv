@@ -32,8 +32,10 @@ module controller (
     input logic [31:0] next_pc,
     input logic [31:0] instruction,
 
-    input logic memory_ready,
-    input logic memory_valid,
+    input logic [31:0] read_memory_address,
+    input logic [31:0] write_memory_address,
+
+    input logic ack_i,
 
     input logic interrupted,
 
@@ -45,11 +47,13 @@ module controller (
     output logic instruction_write_enable,
     output logic register_file_write_enable,
     output logic memory_command,
-    output logic memory_enable,
+    output logic [31:0] adr_o,
+    output logic stb_o,
 
     output logic write_immediate_to_register_file,
     output logic write_pc_inc_to_register_file,
     output logic write_execute_result_to_pc,
+    output logic clear_pc_lsb,
     output logic write_execute_result_to_pc_if_compare_met,
     output logic write_load_memory_to_register_file,
 
@@ -124,11 +128,13 @@ module controller (
     instruction_write_enable = 0;
     register_file_write_enable = 0;
     memory_command = 1'bx;
-    memory_enable = 0;
+    adr_o = 32'bx;
+    stb_o = 0;
 
     write_immediate_to_register_file = 0;
     write_pc_inc_to_register_file = 0;
     write_execute_result_to_pc = 0;
+    clear_pc_lsb = 0;
     write_execute_result_to_pc_if_compare_met = 0;
     write_load_memory_to_register_file = 0;
 
@@ -165,11 +171,10 @@ module controller (
         next_exception = 0;
         next_exception_cause = 0;
         next_trap_value_type = controller_pkg::ZERO;
-        if (memory_ready) begin
-          memory_enable  = 1;
-          memory_command = controller_pkg::READ;
-        end
-        if (memory_valid) begin
+        memory_command = controller_pkg::READ;
+        adr_o = read_memory_address;
+        stb_o = 1;
+        if (ack_i) begin
           next_state = state_decode;
           instruction_write_enable = 1;
         end
@@ -299,8 +304,10 @@ module controller (
         if (opcode == LOAD) begin
           use_execute_result_for_read_memory = 1;
           memory_command = controller_pkg::READ;
+          adr_o = read_memory_address;
         end else begin
           memory_command = controller_pkg::WRITE;
+          adr_o = write_memory_address;
         end
         if (misaligned_exception) begin
           next_state = state_trap;
@@ -309,8 +316,8 @@ module controller (
               csr_pkg::STORE_ADDRESS_MISALIGNED_CODE;
           next_trap_value_type = controller_pkg::EXECUTE_RESULT;
         end else begin
-          if (memory_ready) memory_enable = 1;
-          if (memory_valid) begin
+          stb_o = 1;
+          if (ack_i) begin
             next_state = state_write_back;
             if (opcode == LOAD) begin
               load_memory_data_write_enable = 1;
@@ -328,6 +335,7 @@ module controller (
           JAR, JALR: begin
             write_pc_inc_to_register_file = 1;
             write_execute_result_to_pc = 1;
+            clear_pc_lsb = opcode == JALR;
           end
           BRANCH: write_execute_result_to_pc_if_compare_met = 1;
           LOAD: write_load_memory_to_register_file = 1;
